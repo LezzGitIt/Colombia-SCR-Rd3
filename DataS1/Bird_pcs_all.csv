@@ -1,4 +1,4 @@
-Id_muestreo,Id_muestreo_no_dc,Fecha,Pc_start,Species_ayerbe,Count,Distancia_bird,Tipo_registro,Grabacion
+Id_survey,Id_survey_no_dc,Date,Pc_start,Species_ayerbe,Count,Distance_bird,Obs_type,Recording
 C-MB-A-ED_01,MB-A-ED_01,2017-11-04,06:16:00,Bubulcus ibis,8,< 25,NA,NA
 C-MB-A-ED_01,MB-A-ED_01,2017-11-04,06:16:00,Amazona ochrocephala,1,< 25,NA,NA
 C-MB-A-ED_01,MB-A-ED_01,2017-11-04,06:16:00,Campylorhynchus griseus,5,< 25,NA,NA

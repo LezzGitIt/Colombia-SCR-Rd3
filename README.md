@@ -18,22 +18,25 @@ phylogenetic diversity).
 
 | File | Contents | Join keys |
 |---|---|---|
-| `Bird_pcs_all.csv` | every point-count observation | `Id_muestreo`, `Id_muestreo_no_dc`, `Species_ayerbe` |
+| `Bird_pcs_all.csv` | every point-count observation | `Id_survey`, `Id_survey_no_dc`, `Species_ayerbe` |
 | `Bird_pcs_analysis.csv` | analysis-ready subset (50 m radius, used the habitat) | same |
-| `Event_covs.csv` | per-survey covariates (date, time, observer, weather, land cover) | `Id_muestreo`, `Id_muestreo_no_dc` |
-| `Site_covs.csv` | per-location covariates (elevation, climate, distance to nearest farm) | `Id_muestreo_no_dc` |
+| `Event_covs.csv` | per-survey covariates (date, time, observer, weather, land cover) | `Id_survey`, `Id_survey_no_dc` |
+| `Site_covs.csv` | per-location covariates (elevation, climate, distance to nearest farm) | `Id_survey_no_dc` |
 | `Taxonomy.csv` | SACC ↔ BirdLife ↔ eBird ↔ BirdTree crosswalk (Colombia) | `Species_ayerbe` |
-| `Functional_traits.csv` | per-species trait table (mainly AVONET) | `Species_ayerbe` |
+| `Functional_traits.csv` | per-species trait table (AVONET / BIRDBASE / BirdLife) | `Species_ayerbe` |
 | `Column_definitions_final.xlsx` | field definitions for each table | |
+| `Column_names_ES.csv` + `Make_Spanish_headers.R` | regenerate Spanish-headed copies into `DataS1/es/` | |
 
 `Scripts/Data_paper/Data_joining_example.R` shows how the `DataS1/` tables join —
 a starting point, to be adapted to your own analysis. `Scripts/06_Analysis_wrangling.R`
 documents how `Bird_pcs_analysis.csv` was derived from the full observation set.
 
-The deposit ships all-English column headers. `Scripts/Data_paper/Translate_column_names.R`
-maintains the column-name crosswalk (`Suppfiles/column_names.csv`:
-`name_current → name_en → name_es`) and writes English- and Spanish-headed copies of the
-tables to `Derived/`.
+**Column headers.** The pipeline and the deposit use English column names throughout
+(`Id_survey`, `Date`, `Year`, `Weather`, `Department`, …). `Suppfiles/column_names.csv`
+(`name_current → name_en → name_es`) carries the Spanish equivalents;
+`Scripts/Data_paper/Translate_column_names.R` refreshes it against the current pipeline
+outputs. To get Spanish headers, run `Rscript Make_Spanish_headers.R` from inside `DataS1/`
+(base R, no packages) — it reads `Column_names_ES.csv` and writes `DataS1/es/`.
 
 On publication, the versioned deposit of record (with a DOI) will be archived on
 **Dryad/Zenodo**; `DataS1/` here is the working copy, kept in sync with the pipeline.

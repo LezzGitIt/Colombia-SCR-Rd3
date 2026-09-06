@@ -1,15 +1,17 @@
-# Project-level Quarto config for the data-paper manuscript (Scripts/qmd/).
-# The manuscript uses format: elsevier-pdf (from _extensions/), which inherits
-# the `pdf` settings below (incl. the custom Suppfiles/title.tex partial).
+# Project-level Quarto config for the data-paper manuscript (Scripts/Data_paper/qmd/).
+# This file also anchors the project root: without it, `quarto render` on the qmd
+# cannot walk up to find `_extensions/elsevier` and the render fails. Do not delete.
+# The manuscript uses format: elsevier-pdf (from _extensions/); the `pdf` settings
+# below feed into it (custom Suppfiles/title.tex partial + authblk affiliations).
+# Note: the effective engine is xelatex (Quarto's default for this format) and the
+# output has no table of contents -- `toc` here appears not to reach elsevier-pdf.
 
 project:
   type: default
   execute-dir: project
 format:
   pdf:
-    pdf-engine: lualatex
-    toc: true
-    toc-depth: 3
+    pdf-engine: xelatex
     author-affiliations: true
     template-partials:
       - Suppfiles/title.tex

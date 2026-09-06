@@ -20,8 +20,9 @@ format:
        \usepackage{lineno}
        \linenumbers
        \usepackage[margin=1in]{geometry}
-       \setlength{\LTleft}{\fill}
+       \setlength{\LTleft}{0pt}
        \setlength{\LTright}{\fill}
+       \setlength{\LTcapwidth}{\textwidth}
     journal:
       name: Ecology
       formatting: preprint
@@ -76,10 +77,10 @@ Num_spp <- length(unique(Data$Bird_pcs_all$Species_ayerbe))   # species recorded
 Num_fam <- length(unique(Data$Taxonomy$Family))
 Tot_pc <- nrow(Data$Event_covs)
 Tot_pc_prty <- prettyNum(Tot_pc, big.mark = ",")
-Num_ft <- Data$Functional_traits %>% 
-  select(-c(Species_ayerbe, Source_elev)) %>% 
+Num_ft <- Data$Functional_traits %>%
+  select(-any_of("Species_ayerbe")) %>%
   ncol()
-Num_farms <- unique(Data$Site_covs$Id_gcs) %>% length()
+Num_farms <- unique(Data$Site_covs$Id_scr) %>% length()
 
 # Point counts were sampled 1–15 times, with [CREATE] 74% of locations visited 3 times within a closed sampling period
 Per_1_visit <- 128 / Num_sites # Cipav points / all points 
@@ -100,13 +101,13 @@ My suggested response
 
 Agriculture dominates half of the world’s land mass, and has resulted in extensive forest destruction, fragmentation, and the endangerment of biodiversity [@kennedyManagingMiddleShift2019; @lewisIncreasingHumanDominance2015; @hald-mortensenMainDriversBiodiversity2023]. One way of ameliorating agriculture’s impact on earth’s natural systems is through ecological intensification, which combines traditional ecological knowledge with scientific innovation to reduce external inputs, improve/maintain productivity, and conserve agrobiodiversity [@altieriLinkingEcologistsTraditional2004; @kremenEcologicalIntensificationDiversification2020; @kremenDiversifiedFarmingSystems2012]. A swift transition to diversified agricultural systems is particularly important in the hyper-biodiverse Neotropics (i.e. new-world tropics), where biodiversity is plummeting faster than anywhere in the world, and agriculture is the primary threat [@almondLivingPlanetReport2022; @antonelliRiseFallNeotropical2022]. Monoculture grass pasture, in particular, is the dominant anthropogenic land cover in the Neotropics [@faoFAOSTAT2020]; thus, management of pastoral lands will determine the fate of much of tropical biodiversity [@calleStrategyScalingUpIntensive2013; @murgueitioNativeTreesShrubs2011; @mendenhallCountrysideBiogeography2013].
 
-Implementing silvopastoral systems – an agroforestry technique involving the incorporation of productive trees and shrubs in pastoral landscapes – on lands previously converted to grass pasture may play an important role in slowing biodiversity declines. Indeed, by adding botanical and structural diversity to the landscape, it is thought that silvopasture may positively impact biodiversity by facilitating dispersal [@kremenLandscapesThatWork2018], buffering species from the negative effects of fragmentation [@arroyo-rodriguezDoesForestFragmentation2017; @ewersFragmentationImpairsMicroclimate2013], and ultimately increasing species persistence in fragmented landscapes. Colombia offers a salient example within the Neotropics of a country with extremely high levels of biodiversity that are gravely threatened by agriculture [@murciaConservingBiodiversityComplex2013; @etterRegionalPatternsAgricultural2006]. Pastureland (and feed crops for cattle) have a particularly large impact as the predominant anthropogenic land use in the country, occupying \~30% of the country’s landcover [@williamsMinimisingLossBiodiversity2020; @vanausdalPastureProfitPower2009; @lernerSustainableCattleRanching2017]. Over the past several decades, various organizations in Colombia have implemented projects to introduce silvopasture as one method for rehabilitating the substantial areas of degraded pastures in Colombia. Implementation of silvopasture will also be critical in meeting sustainability, production, climate, and conservation goals [@tapascoLivestockSectorColombia2019; @fedeganCifrasReferenciaSector2018].
+Implementing silvopastoral systems – an agroforestry technique involving the incorporation of productive trees and shrubs in pastoral landscapes – on lands previously converted to grass pasture may play an important role in slowing biodiversity declines. Indeed, by adding botanical and structural diversity to the landscape, it is thought that silvopasture may positively impact biodiversity by facilitating movement [@kremenLandscapesThatWork2018], buffering species from the negative effects of fragmentation [@arroyo-rodriguezDoesForestFragmentation2017; @ewersFragmentationImpairsMicroclimate2013], and ultimately increasing species persistence in fragmented landscapes. Colombia offers a salient example within the Neotropics of a country with extremely high levels of biodiversity that are gravely threatened by agriculture [@murciaConservingBiodiversityComplex2013; @etterRegionalPatternsAgricultural2006]. Pastureland (and feed crops for cattle) have a particularly large impact as the predominant anthropogenic land use in the country, occupying \~30% of the country’s landcover [@williamsMinimisingLossBiodiversity2020; @vanausdalPastureProfitPower2009; @lernerSustainableCattleRanching2017]. Over the past several decades, various organizations in Colombia have implemented projects to introduce silvopasture as one method for rehabilitating degraded pastures in Colombia. Implementation of silvopasture will also be critical in meeting sustainability, production, climate, and conservation goals [@tapascoLivestockSectorColombia2019; @fedeganCifrasReferenciaSector2018].
 
-Bird communities are structured by a mix of local and landscape level processes. The local management of agroecosystems is important as this greatly influences resource and niche space availability, predominantly through the vegetative cover and structural diversity. For example, agrobiodiversity can range from homogenous monocultures to highly diversified polycultures, management can be minimally or highly disruptive (e.g., mowing, tilling, harvesting), and pests can be controlled by leveraging ecosystem services or through the application of toxic pesticides [@stantonAnalysisTrendsAgricultural2018]. Past work in silvopastoral systems has found greater taxonomic diversity compared to monoculture pasture, but less than forested habitat [@mendozaConsistencyBirdUse2014; @auspreySensitivityTropicalMontane2023], although there are exceptions reporting equivalent or higher levels of diversity in silvopasture relative to forest patches [@broomSustainableEfficientLivestock2013; @prevedelloImportanceScatteredTrees2018]. Furthermore, the impact of local management is likely moderated by climatic conditions like temperature and rainfall, as bird affiliation with agricultural systems tends to be greater in cooler / wetter environments [@frishkoffClimateChangeHabitat2016; @boyleHygricNichesTropical2020; @soberonGrinnellianEltonianNiches2007]. Given these complexities, our understanding of silvopasture's impact on bird biodiversity is limited by studies with small spatiotemporal and taxonomic coverage.
+Bird communities are structured by a mix of local and landscape level processes. The local management of agroecosystems is important as this greatly influences resource and niche space availability, predominantly through the vegetative cover and structural diversity. For example, agrobiodiversity can range from homogenous monocultures to highly diversified polycultures, management can be minimally or highly disruptive (e.g., mowing, tilling, harvesting), and pests can be controlled by leveraging ecosystem services or through the application of pesticides [@stantonAnalysisTrendsAgricultural2018]. Past work in silvopastoral systems has found greater taxonomic diversity compared to monoculture pasture, but less than forested habitat [@mendozaConsistencyBirdUse2014; @auspreySensitivityTropicalMontane2023], although there are exceptions reporting equivalent or higher levels of diversity in silvopasture relative to forest patches [@broomSustainableEfficientLivestock2013; @prevedelloImportanceScatteredTrees2018]. Furthermore, the impact of local management is likely moderated by climatic conditions like temperature and rainfall, as bird affiliation with agricultural systems tends to be greater in cooler / wetter environments [@frishkoffClimateChangeHabitat2016; @boyleHygricNichesTropical2020; @soberonGrinnellianEltonianNiches2007]. Given these complexities, our understanding of silvopasture's impact on bird biodiversity is limited by studies with small spatiotemporal and taxonomic coverage.
 
-Here we present the 'Bird diversity in productive landscapes of Colombia' dataset, collating and standardizing data across `r Tot_pc_prty` surveys at `r Num_sites` unique point count locations from 2013 - 2026. We recorded `r Num_obs_prty` bird observations of `r Num_spp` species in `r Num_fam` families across five distinct ecoregions, including tropical dry forest, Andean montane forest, and the plains of the Orinoco river basin (@fig-sampling-map). The most speciose orders were Passeriformes, Apodiformes, Piciformes, Psittaciformes, and Accipitriformes (@fig-phylogeny), and the species that were both widespread and abundant tended to thrive in highly dynamic and heterogeneous landscapes (e.g., *Tyrannus melancholicus, Cyanocorax violaceus, Bubulcus ibis, Milvago chimachima,* and *Crotophaga ani*; @fig-abund-widespread-spp).
+Here we present the 'Bird diversity in productive landscapes of Colombia' dataset, collating and standardizing data across `r Tot_pc_prty` surveys at `r Num_sites` unique point count locations from 2013 - 2026. We recorded `r Num_obs_prty` bird observations of `r Num_spp` species in `r Num_fam` families across five ecologically distinct regions (hereafter, ‘ecoregions’), including tropical dry forest, Andean montane forest, and the plains of the Orinoco river basin (@fig-sampling-map). The most speciose orders were Passeriformes, Apodiformes, Piciformes, Psittaciformes, and Accipitriformes (@fig-phylogeny), and the species that were both widespread and abundant tended to thrive in highly dynamic and heterogeneous landscapes (e.g., *Tyrannus melancholicus, Cyanocorax violaceus, Bubulcus ibis, Milvago chimachima,* and *Crotophaga ani*; @fig-abund-widespread-spp).
 
-![The locations of 504 point count sites in 73 farms across five ecoregions in Colombia. Colombia is extremely topographically diverse, with the Andes mountain range trifurcating into three distinct 'cordilleras', in addition to smaller 'sierras' (e.g., Sierra Nevada de Santa Marta) that are critical for understanding bird distributions in Colombia. In between the cordilleras lie two major river valleys, the Cauca and Magdalena (labeled in red). Major rivers also run off the Eastern slope of the Andes into the plains and eventually into the Orinoco and Amazon rivers. The shape of the symbol corresponds to the data collector, and the size corresponds to the number of point counts within a quarter degree squared grid cell. Note that a small jitter was applied to all points, and a larger jitter was applied to points in the Piedemonte region to improve visibility. Elevation was log-transformed to emphasize altitudinal gradients at lower elevations.](../../../Figures/Static/Map_sampling/TNC_Field_Map_Final.png){#fig-sampling-map}
+![The locations of 504 point count sites in 73 farms across five ecoregions in Colombia. Colombia is extremely topographically diverse, with the Andes mountain range trifurcating into three distinct chains (i.e., 'cordilleras'), in addition to more isolated 'sierras' (e.g., Sierra Nevada de Santa Marta), that are critical for understanding bird distributions in Colombia. In between the chains of the Andes lie two major river valleys, the Cauca and Magdalena (labeled in red). Major rivers also run off the Eastern slope of the Andes into the plains and eventually into the Orinoco and Amazon rivers. The shape of the symbol corresponds to the data collector, and the size corresponds to the number of point counts within a quarter degree squared grid cell. Note that a small jitter was applied to all points, and a larger jitter was applied to points in the Piedemonte region to improve visibility. Elevation was log-transformed to emphasize altitudinal gradients at lower elevations.](../../../Figures/Static/Map_sampling/TNC_Field_Map_Final.png){#fig-sampling-map}
 
 The `r Tot_pc_prty` point count surveys were sampled 1–19 times total, with `r round(Per_3_visits, 0)`% of locations visited $\geq$ 3 times within a closed sampling period, enabling estimation of detection probabilities through hierarchical models. Land-use landcover types surveyed include mature forest, forest fragments, riparian forest, crops, intensive pasture, several types of silvopasture, and heterogeneous mosaics (i.e., no single dominant landcover type). This dataset permits analyses of bird diversity patterns and community composition across land-use gradients, especially the effects of silvopastoral practices on biodiversity in tropical productive landscapes. We also provide complementary datasets of taxonomic equivalents (BirdLife, BirdTree, and eBird / Clements), functional traits, site covariates, and survey covariates (@tbl-file-info), facilitating a variety of research questions and analytical approaches. For example, one could examine the interacting effects of local management practices and climate, while controlling for phylogenetic non-independence, to understand silvopasture's influence on functional diversity and ecosystem service provisioning. Importantly, the longitudinal nature of these data allow for analyses of population trends or colonization/extinction dynamics, which is critical for conservation practitioners [@leesRoadmapIdentifyingFilling2020].
 
@@ -126,7 +127,7 @@ file_sizes <- file_info$size
 # Short descriptions of each file 
 Short_descriptions <- tibble(
   File_name = c("Bird_pcs_all.csv", "Bird_pcs_analysis.csv", "Event_covs.csv", "Functional_traits.csv", "Site_covs.csv", "Taxonomy.csv"),
-  Description =  c("All point count observations", "Subset of ‘Bird_pcs_all.csv’ (see 'Scripts/08_Analysis_wrangling.R')", "Information about each survey, including date, start time, and detection covariates", "Functional traits of all species observed in the project", "Unchanging covariates of each point count location", "Taxonomic equivalents including BirdLife, BirdTree, and eBird/Clements")
+  Description =  c("All point count observations", "Subset of ‘Bird_pcs_all.csv’ (see 'Scripts/06_Analysis_wrangling.R')", "Information about each survey, including date, start time, and detection covariates", "Functional traits of all species observed in the project", "Unchanging covariates of each point count location", "Taxonomic equivalents including BirdLife, BirdTree, and eBird/Clements")
 )
 
 # Number of observations in each data set
@@ -143,17 +144,20 @@ file_names_and_sizes <- tibble(
   arrange(desc(Size_MB)) %>%
   relocate(Description, .after = File_name)
 
-# To do - I want to 1) align the contents each column underneath the center of the column header, and 2) in header "Number \nobservations" the "\nobservations" part is not being printed on a second line. How can I fix? 
 # Print and format
-file_names_and_sizes %>% 
-  rename_with(~c("File name", "Description", "Number \nobservations", "Size (MB)")) %>%
-  kable("latex", booktabs = TRUE, longtable = TRUE) %>%
-  kable_styling(latex_options = c("striped", "hold_position"), 
-                position = "center") %>% 
+## align = per column: File name / Description stay left (long strings read better), the two short columns centre under their headers
+## A "\n" in a LaTeX header is not a line break -- kableExtra::linebreak() wraps it in \makecell (the makecell package is loaded in the qmd preamble); escape = FALSE is then required, so the underscores in File name / Description are pre-escaped
+file_names_and_sizes %>%
+  mutate(across(c(File_name, Description), ~str_replace_all(.x, "_", "\\\\_"))) %>%
+  kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE,
+        align = c("l", "l", "c", "c"),
+        col.names = kableExtra::linebreak(c("File name", "Description", "Number of\nobservations", "Size (MB)"), align = "c")) %>%
+  kable_styling(latex_options = c("striped", "hold_position"),
+                position = "center") %>%
     column_spec(2, width = "8cm")
 ```
 
-![The most abundant and widespread bird species in the project (before filtering species). The total count refers to the summed count across all surveys, and localities refers to the number of unique point count locations where the species was detected at least once (total = 504).](../../../Figures/Species_counts_localities.png){#fig-abund-widespread-spp}
+![The most abundant and widespread bird species in the project (before filtering observations). The total count refers to the summed count across all surveys, and localities refers to the number of unique point count locations where the species was detected at least once (total = 504).](../../../Figures/Species_counts_localities.png){#fig-abund-widespread-spp}
 
 # Class I. Data Set Descriptors
 
@@ -182,7 +186,7 @@ The Nature Conservancy, Bogota, Colombia
 
 Location (spatial scale), time period and sampling frequency (temporal scale), theme or contents (thematic scale)
 
-Colombia, Bajo Magdalena, Cafetera, Río Cesar, Piedemonte, Cordillera Oriental, 2013 - 2026, longitudinal data, productive lands, productive landscapes, birds, silvopastoral systems, Sustainable Cattle Ranching
+Colombia, Bajo Magdalena, Cafetera, Río Cesar, Piedemonte, Cordillera Oriental, 2013 - 2026, longitudinal data
 
 # Class II. Research origin descriptors
 
@@ -202,11 +206,11 @@ Colombia, Bajo Magdalena, Cafetera, Río Cesar, Piedemonte, Cordillera Oriental,
 
 4.  Objectives: Scope and purpose of research program\
     \
-    The SCR project (2012-2019) and the subsequent SNAPP project (2022 - 2025) monitored biodiversity, carbon, farm productivity, and the socioeconomic status of farmers that adopted silvopasture in Colombia. The specific objectives were to: 1) Understand the impacts of silvopastoral systems (SPS) on biodiversity, climate, productivity, and farmer wellbeing; 2) Identify conditions for synergies (win-win situations) for people and nature; 3) Evaluate real-world drivers of on-farm adoption and better understand enablers and constraints; 4) Develop evidence-based guidance for environmental certification standards and advance a diagnostic tool for sustainable cattle ranching partners.
+    The SCR project (2012-2019) and the subsequent SNAPP project (2022 - 2026) monitored biodiversity, carbon, farm productivity, and the socioeconomic status of farmers that adopted silvopasture in Colombia. The specific objectives were to: 1) Understand the impacts of silvopastoral systems (SPS) on biodiversity, climate, productivity, and farmer wellbeing; 2) Identify conditions for synergies (win-win situations) for people and nature; 3) Evaluate real-world drivers of on-farm adoption and better understand enablers and constraints; 4) Develop evidence-based guidance for environmental certification standards and advance a diagnostic tool for sustainable cattle ranching partners.
 
 5.  Abstract: Descriptive abstract summarizing broader scientific scope of overall research project\
     \
-    By 2050, global demands for livestock products (milk and meat) are estimated to increase by more than 50%, and correspondingly, cattle production in Latin America could increase by 125%. How this growth occurs has significant social, economic, and environmental consequences. Extensive pasture monoculture is the dominant livestock grazing system in Latin America and is environmentally damaging and vulnerable to climate change. It has led to habitat conversion, biodiversity loss, degraded soils and water quality, and increased greenhouse gas emissions. Silvopastoral Systems – the intentional incorporation of trees and shrubs in grazing lands – are a promising alternative to reduce the environmental footprint of pasture monocultures and enhance productivity and climate benefits to farmers and society. With the aim of understanding silvopasture’s impacts on multifunctional outcomes including biodiversity, carbon, farm productivity, and the socioeconomic status of farmers, the SCR and SNAPP projects worked on 4,100 farms across five ecoregions of Colombia from 2012-2025. Through technical assistance and provision of materials, the project transformed \~160,000 hectares of degraded pasture to silvopasture, primarily by integrating live fences and dispersed trees. Preliminary analyses show the potential for win-win outcomes for people and nature. However, silvopasture has rarely been adopted outside of international development projects, and its potential for scaling is poorly understood.
+    By 2050, global demands for livestock products (milk and meat) are estimated to increase by more than 50%, and correspondingly, cattle production in Latin America could increase by 125%. How this growth occurs has significant social, economic, and environmental consequences. Extensive pasture monoculture is the dominant livestock grazing system in Latin America and is environmentally damaging and vulnerable to climate change. It has led to habitat conversion, biodiversity loss, degraded soils and water quality, and increased greenhouse gas emissions. Silvopastoral Systems – the intentional incorporation of trees and shrubs in grazing lands – are a promising alternative to reduce the environmental footprint of pasture monocultures and enhance productivity and climate benefits to farmers and society. With the aim of understanding silvopasture’s impacts on multifunctional outcomes including biodiversity, carbon, farm productivity, and the socioeconomic status of farmers, the SCR and SNAPP projects worked on 4,100 farms across five ecoregions of Colombia from 2012-2026. Through technical assistance and provision of materials, the project transformed \~160,000 hectares of degraded pasture to silvopasture, primarily by integrating live fences and dispersed trees. Preliminary analyses show the potential for win-win outcomes for people and nature. However, silvopasture has rarely been adopted outside of international development projects, and its potential for scaling is poorly understood.
 
 6.  Sources of funding: Grant and contract numbers, names, and addresses of funding sources\
     \
@@ -218,16 +222,16 @@ Colombia, Bajo Magdalena, Cafetera, Río Cesar, Piedemonte, Cordillera Oriental,
 
 - Site type: Descriptive (e.g., short-grass prairie, blackwater stream, etc.)\
   \
-  Sampling was conducted in five broad ecoregions: the coffee region (the central Andes), the Cordillera Oriental (the Eastern Andes), Piedemonte (Orinoco piedmont), Bajo Magdalena (lower basin of the Magdalena River), and Río Cesar (Cesar river basin) (@fig-sampling-map). Colombia is a tropical country with extreme topographic complexity but little temperature variation throughout the year. Thus, climate and seasonality are primarily defined by elevation and rainfall patterns (@fig-envi-boxplots). Rainfall is unimodal closer to the equator (e.g., our sites in the Piedemonte region are closer to unimodal) and generally bimodal further from the equator (@fig-prec-smooth), although local topography complicates these patterns.
+  Sampling was conducted in five broad ecoregions: the coffee region (the central Andes), the Cordillera Oriental (the Eastern Andes), Piedemonte (Orinoco piedmont), Bajo Magdalena (lower basin of the Magdalena River), and Río Cesar (Cesar river basin) (@fig-sampling-map). Colombia is a tropical country with extreme topographic complexity but little temperature variation throughout the year. Thus, climate and seasonality are primarily defined by elevation and rainfall patterns (@fig-envi-boxplots). Rainfall is unimodal closer to the equator (e.g., sites in the Piedemonte region are closer to unimodal) and generally bimodal further from the equator (@fig-prec-smooth), although local topography complicates these patterns.
 
 ![Elevation (m a.s.l.), mean annual temperature (°C), and mean annual precipitation (mm) of each point count location within five ecoregions. A jitter was applied to aid in visualization.](../../../Figures/Envi_vars.png){#fig-envi-boxplots}
 
-[The Andes:]{.underline} The coffee region and the Cordillera Oriental reside in the Andes, a region defined by complex mountain topography, highly regional microclimates, and extreme elevational and climatic gradients over short horizontal distances. The Andes trifurcate in Colombia into three distinct ranges or 'cordilleras' and two major intermontane valleys, the Cauca Valley between the Western and Central cordilleras, and the Magdalena Valley between the Central and Eastern cordilleras. The eastern slopes of the cordilleras tend to be wetter than the western slopes (although the western side of the westernmost cordillera is an exception due to the extreme humidity from the Pacific Ocean characteristic of the Chocó region), and there are small rain shadows at lower elevations at the bottom of the valleys. Topographic complexity and highly regional microclimates have resulted in high bird diversity, including a large influx of migrants in the winter months. Note that our sites in the coffee region span both the Magdalena and Cauca river valleys, as well as the Western and Central cordilleras, whereas our sites in the Cordillera Oriental are only in the East Andean highlands.\
+[The Andes:]{.underline} The coffee region and the Cordillera Oriental reside in the Andes, a region defined by complex mountain topography, highly regional microclimates, and extreme elevational and climatic gradients over short geographic distances. The Andes trifurcate in Colombia into three distinct ranges or 'cordilleras' and two major intermontane valleys, the Cauca Valley between the Western and Central cordilleras, and the Magdalena Valley between the Central and Eastern cordilleras. The eastern slopes of the cordilleras tend to be wetter than the western slopes (although the western side of the westernmost cordillera is an exception due to the extreme humidity from the Pacific Ocean characteristic of the Chocó region), and there are small rain shadows at lower elevations at the bottom of the valleys. Topographic complexity and highly regional microclimates have resulted in high bird diversity, including a large influx of migrants in the winter months. Note that sites in the coffee region span both the Magdalena and Cauca river valleys, as well as the Central cordillera; sites in the Cordillera Oriental are only in the East Andean highlands.\
 [Piedemonte:]{.underline} On the East side of the Eastern-most chain of the Andes is the 'Piedemonte' (piedmont or foothills) region, a complex transition zone between the Andes and the flat plains (i.e. los Llanos) to the East. Heavy rainfall on the Eastern slope of the Andes results in many rivers and gallery forests dissecting the landscape as they flow East towards the grassland plains of the upper Orinoco River basin and south towards the Amazon rainforest biome. Little forest remains and cattle ranching is the predominant agricultural activity of the region. The birds of the Piedemonte are quite diverse as it is a mix of Andean and Llanos birds, with some widespread Amazonian birds reaching our sampling sites.\
-[Bajo Magdalena:]{.underline} This region is near the delta of the Magdalena River in the Caribbean. The region is dry although it gets wetter further inland. Coastal regions are largely windswept, dominated by short stature tropical dry forest (most trees drop their leaves) and desert-like scrub. [\
-Río Cesar:]{.underline} A dry river valley nestled between the imposing Sierra Nevada de Santa Marta (the world's tallest isolated coastal mountain range) and the Serranía del Perijá mountains that straddle the Colombia-Venezuela border. The vegetation is similar to the Bajo Magdalena region. High temperatures and low precipitation result in desert conditions, with scrubby acacia-like trees and large cacti dominating the vegetation. This unique region has relatively high endemism, sharing birds only with similar desert areas in neighboring Venezuela.
+[Bajo Magdalena:]{.underline} This region is near the delta of the Magdalena River in the Caribbean. The region is dry, particularly the windswept coastal regions, although it gets wetter further inland. Vegetation is dominated by short stature trees that drop their leaves (tropical dry forest) and desert-like scrub. [\
+Río Cesar:]{.underline} A dry river valley nestled between the imposing Sierra Nevada de Santa Marta (the world's tallest isolated coastal mountain range) and the Serranía del Perijá mountains that straddle the Colombia-Venezuela border. The vegetation is similar to the Bajo Magdalena region. High temperatures and low precipitation result in desert conditions, with scrubby acacia-like trees and large cacti dominating the vegetation. This unique region has relatively high endemism, sharing some species only with similar desert areas in neighboring Venezuela.
 
-![In Colombia, precipitation is one of the primary determinants of the distribution of biodiversity. Rainfall is bimodal throughout most of Colombia, although often becomes unimodal closer to the equator. Curves show the 30-year average precipitation at our sampling sites, grouped by ecoregion. Curves were fit using generalized additive model smoothers fit separately by ecoregion, with a cyclic cubic regression spline and basis dimension k = 12 to capture monthly periodicity.](../../../Figures/Rainfall/Prec_smoothed.png){#fig-prec-smooth width="700"}
+![In Colombia, precipitation is one of the primary determinants of the distribution of biodiversity. Rainfall is bimodal throughout most of Colombia, although often becomes more unimodal closer to the equator. Curves show the 30-year average precipitation at our sampling sites, grouped by ecoregion. Curves were fit using generalized additive model smoothers fit separately by ecoregion, with a cyclic cubic regression spline and basis dimension k = 12 to capture monthly periodicity.](../../../Figures/Rainfall/Prec_smoothed.png){#fig-prec-smooth width="700"}
 
 - Geography: Location (e.g., latitude/longitude), size
 
@@ -258,7 +262,7 @@ calc_km2 <- function(sf_obj, group = NULL) {
     st_drop_geometry() %>% 
     mutate(Area = round(Area, 0))
 }
-?st_convex_hull
+
 # Study area
 area_km2_all <- calc_km2(Pc_locs_sf) # Total
 area_km2_ecor <- calc_km2(Pc_locs_sf, group = Ecoregion) # By ecoregion
@@ -307,7 +311,7 @@ Habitat: Detailed characteristics of habitats sampled
 
 Create_hab_tbl <- function(col){
   Data$Site_covs %>% 
-  distinct(Id_muestreo_no_dc, {{ col }}) %>%
+  distinct(Id_survey_no_dc, {{ col }}) %>%
   count( {{ col }}) %>%
   pivot_wider(names_from = {{ col }}, values_from = n) %>% 
   Cap_snake()
@@ -316,7 +320,7 @@ Create_hab_tbl <- function(col){
 Hab_tbl <- Create_hab_tbl(col = Habitat)
 Hab_sub_tbl <- Create_hab_tbl(col = Habitat_sub)
 
-#Pc_hab %>% filter(Habitat_sub == "Maduro")
+#Pc_hab %>% filter(Habitat_sub == "Maduro") %>% view()
 ```
 
 `r Tot_pc_prty` point counts were conducted in five primary habitats (e.g. forest) and eight sub-habitat types (e.g., riparian forest). After each primary habitat or sub-habitat type we list the number of unique point count locations (n):
@@ -327,9 +331,9 @@ Hab_sub_tbl <- Create_hab_tbl(col = Habitat_sub)
 
   - Riparian forest (n = `r Hab_sub_tbl$Ripario`): Gallery forests on either side of a stream or river
 
-  - Mature forest (n = `r Hab_sub_tbl$Maduro`): Taller, older, and larger contiguous forests. 10 of these points were in the Ecorregion Cafetera (9 in the ecological reserve Otún Quimbaya, 1 in Reserva El Hatico) and 2 were in a large forest in the Piedemonte.
+  - Mature forest (n = `r Hab_sub_tbl$Maduro`): Taller, older, and larger contiguous forests. 10 of these points were in the Ecorregion Cafetera (9 in the ecological reserve Otún Quimbaya, 4 in Reserva El Hatico) and 2 were in a large forest in the Piedemonte.
 
-- Silvopasture (Total n = `r Hab_tbl$Ssp`): Silvopastoral systems consist of a variety of practices and range across a spectrum regarding the diversity and intensity of practices implemented. For example, silvopastural systems can be tree (and grass) monocultures planted to be homogeneous in spacing and age, or, alternatively, they can be highly-productive, diverse polycultures composed of remnant vegetation and naturally recruited tree species [@cubbageComparingSilvopastoralSystems2012]. See @murgueitioNativeTreesShrubs2011, @calleStrategyScalingUpIntensive2013, and @cubbageComparingSilvopastoralSystems2012 to better understand the full extent of management practices that can be incorporated in silvopastoral systems. In our bird sampling efforts, the project differentiated between several types of silvopasture:
+- Silvopasture (Total n = `r Hab_tbl$Ssp`): Silvopastoral systems consist of a variety of practices and range across a spectrum regarding the diversity and intensity of practices implemented. For example, silvopastural systems can be tree (and grass) monocultures planted to be homogeneous in spacing and age, or, alternatively, they can be highly diverse polycultures composed of remnant vegetation and naturally recruited tree species [@cubbageComparingSilvopastoralSystems2012]. See @murgueitioNativeTreesShrubs2011, @calleStrategyScalingUpIntensive2013, and @cubbageComparingSilvopastoralSystems2012 to better understand the full extent of management practices that can be incorporated in silvopastoral systems. In our bird sampling efforts, the project differentiated between several types of silvopasture:
 
   - Dispersed trees (n = `r Hab_sub_tbl$Arboles_dispersos`): Trees integrated directly into the pasture where cows graze, providing shade as well as direct forage in some cases
 
@@ -359,7 +363,7 @@ Hab_sub_tbl <- Create_hab_tbl(col = Habitat_sub)
 
 - Site history: Site management practices, disturbance history, etc.\
   \
-  Excluding the ‘mature forest’ sites, point counts were embedded in highly dynamic landscapes. Cattle ranching was the predominant agricultural activity on the farms we sampled, although other crops, including palm oil, avocado, citrus, and coffee, were present in some ecoregions. Forest cover was often restricted to strips of \~30 m along the sides of rivers, streams, and other small watercourses (mandated by law in the 1990’s, although adherence varied among farms and regions). Thus, most riparian forests and forest fragments were relatively young (30-40 years), although forest on steep slopes was far less likely to have been clear cut for agriculture. Forests often showed evidence of ongoing human disturbance, including timber extraction and hunting; fencing to prevent cattle from entering forests and streams was common in some regions but rare in others.
+  Excluding the ‘mature forest’ sites, point counts were embedded in highly dynamic landscapes. Cattle ranching was the predominant agricultural activity on the farms we sampled, although other crops, including palm oil, avocado, citrus, eucalyptus, and coffee, were present in some ecoregions. Forest cover was often restricted to strips of \~30 m along the sides of rivers, streams, and other small watercourses (mandated by law in the 1990’s, although adherence varied among farms and regions). Thus, most riparian forests and forest fragments were relatively young (\<30-40 years), although forest on steep slopes was far less likely to have been clear cut for agriculture. Forests often showed evidence of ongoing human disturbance, including timber extraction and hunting; fencing to prevent cattle from entering forests and streams was common in some regions but rare in others.
 
 - Climate: Descriptive summary of site climatic characteristics
 
@@ -369,7 +373,7 @@ Hab_sub_tbl <- Create_hab_tbl(col = Habitat_sub)
 
 a.  Design characteristics: Description of statistical/sampling design
 
-    To understand silvopasture’s impact on avian biodiversity, The Nature Conservancy coordinated various contractors — CIPAV (Centro para la Investigación en Sistemas Sostenibles de Producción Agropecuaria), GAICA, and Unillanos (Universidad de los Llanos) — who conducted `r Tot_pc_prty` avian point counts at `r Num_sites` unique sites across agricultural intensity gradients on (or near) `r Num_farms` different farms across 12 geopolitical departments of Colombia. These 12 departments were grouped into 5 ecologically similar regions (hereafter, ‘ecoregions’; @fig-sampling-map, @tbl-by-data-set).
+    To understand silvopasture’s impact on avian biodiversity, The Nature Conservancy coordinated several data collectors — CIPAV (Centro para la Investigación en Sistemas Sostenibles de Producción Agropecuaria), GAICA, and Unillanos (Universidad de los Llanos) — who conducted `r Tot_pc_prty` avian point counts at `r Num_sites` unique sites across agricultural intensity gradients. Point counts were conducted on (or near) `r Num_farms` different farms across 12 geopolitical departments of Colombia in 5 ecoregions (@fig-sampling-map, @tbl-by-data-set).
 
 b.  Permanent plots: Dimension, location, general vegetation characteristics (if applicable).
 
@@ -377,7 +381,7 @@ b.  Permanent plots: Dimension, location, general vegetation characteristics (if
 #| label: Prep-tbl-by-data-set
 
 # Join covs
-Site_covs <- Data$Site_covs[c("Id_muestreo_no_dc", "Id_gcs", "Habitat", "Ecoregion", "Departamento")]
+Site_covs <- Data$Site_covs[c("Id_survey_no_dc", "Id_scr", "Habitat", "Ecoregion", "Department")]
 Covs_join <- Data$Event_covs %>% 
   left_join(Site_covs) 
 
@@ -390,8 +394,8 @@ Cipav_duration <- Covs_join %>% filter(Uniq_db == "Cipav mbd") %>%
 Duration_minutes <- c(Cipav_duration, rep("10", 5))
 # Years sampled
 Years_sampled <- Covs_join %>% 
-  summarize(min_year = min(Ano),
-            max_year = max(Ano), 
+  summarize(min_year = min(Year),
+            max_year = max(Year), 
             .by = Uniq_db) %>% 
   mutate(Years_sampled = case_when(
     min_year != max_year ~ paste(min_year, "-", max_year), 
@@ -401,7 +405,7 @@ Years_sampled <- Covs_join %>%
 
 #  Calculate the number of ecoregions and departments
 Ecoregions_departments <- Covs_join %>% 
-  summarize(Num_depts = length(unique(Departamento)), 
+  summarize(Num_depts = length(unique(Department)), 
             Num_ecor = length(unique(Ecoregion)),
             .by = Uniq_db) %>% 
   mutate(Ecoregions_departments = paste0(Num_ecor, " (", Num_depts, ")")) %>% 
@@ -413,15 +417,15 @@ Data_set_tbl <- tibble(Uniq_db = unique(Covs_join$Uniq_db),
                        Radius_m = c(25, rep(50, 5)), 
                        Ecoregions_departments)
 Data_set_tbl_summ <- Covs_join %>%
-  summarise(Point_counts = length(unique(Id_muestreo)),
-            Farms = length(unique(Id_gcs)), 
+  summarise(Point_counts = length(unique(Id_survey)),
+            Farms = length(unique(Id_scr)), 
             Habitats_surveyed = str_c(unique(Habitat), collapse = ", "),
             .by = Uniq_db)
 ```
 
 ```{r}
 #| label: tbl-by-data-set
-#| tbl-cap: The number of unique point count locations conducted by each contracting institution, as well as the methodology, the habitats surveyed, and the respective years they surveyed. The 'Dataset' codes pair the data collector with 'mbd' (monitoreo de biodiversidad, 'biodiversity monitoring'). Note that 'Ubc mbd' sampled the same 54 point count locations as 'Unillanos mbd', plus two additional points in a continuous patch of mature forest.
+#| tbl-cap: The number of unique point count locations conducted by each contracting institution, as well as the methodology, the habitats surveyed, and the respective years they surveyed.
 
 
 Data_set_tbl %>% full_join(Data_set_tbl_summ) %>% 
@@ -443,17 +447,17 @@ a.  Data collection period, frequency, etc.: Information necessary to understand
     #| label: Per-three-plus
 
     Max_pcs_per_season <- Data$Event_covs %>% 
-      filter(Nombre_institucion != "Cipav") %>% 
-      slice_max(order_by = Rep_season, by = Id_muestreo)
+      filter(Institution_name != "Cipav") %>% 
+      slice_max(order_by = Rep_season, by = Id_survey)
     Three_plus_reps <- Max_pcs_per_season %>% filter(Rep_season >= 3)
-    Per_three_plus <- nrow(Three_plus_reps) / nrow(Max_pcs_per_season) * 100
+    Per_three_plus <- round(nrow(Three_plus_reps) / nrow(Max_pcs_per_season) * 100, 1)
     ```
 
-    Point count locations were sampled in multiple closed sampling periods by the same data collector using (essentially) the same methodology in several ecoregions. For example, in the Ecorregion Cafetera, GAICA surveyed the same point count locations in June 2013, November 2016, and June 2024 (with guidance from UBC in 2024; @fig-temporal-sampling). No point count locations were sampled in more than four distinct sampling periods. AAS from the University of British Columbia (UBC) complemented these efforts in the summer of 2022 by resampling 54 point count locations that were sampled in 2019 in the Piedemonte ecoregion.
+    Point count locations were sampled in multiple closed sampling periods by the same data collector using (essentially) the same methodology in several ecoregions. For example, in the Ecorregion Cafetera, GAICA surveyed the same point count locations in June 2013, November 2016, and June 2024 (with guidance from UBC in 2024; @fig-temporal-sampling). No point count locations were sampled in more than four distinct sampling periods. Generally, point count locations were not sampled by multiple institutions, with the exception of the University of British Columbia (UBC). In 2022 UBC resampled 54 point count locations that were sampled in 2019 by Universidad de los Llanos; in 2024 UBC, with the help of GAICA, resampled 42 point counts that were surveyed in the 2010's by GAICA in the Cafetera and Piedemonte ecoregions (14 Cafetera, 28 Piedemonte); finally in 2026, UBC resampled the 54 point counts surveyed originally by Universidad de los Llanos, as well as 28 point counts originally sampled by GAICA in the 2010s (22 of which were also resampled in 2024).
 
-    Excluding the point counts conducted by CIPAV (which were surveyed only once), `r Per_three_plus`% of point count locations were sampled at least 3 times within a closed sampling period. Within a closed sampling period it is assumed that there are no births, deaths, immigration, or emigration, and thus the true (but latent) abundance does not change. Sampling 3 or more times in a closed sampling period allows for modeling detectability, and ultimately more robust estimates of occupancy and abundance [@mackenzieEstimatingSiteOccupancy2003].
+    Excluding the point counts conducted by CIPAV, which were surveyed only once, `r Per_three_plus`% of point count locations were sampled at least 3 times within a closed sampling period (i.e., assumption of no births, deaths, immigration, or emigration; @fig-pc-farm-db). This 'robust' sampling design allows for modeling detectability and ultimately more robust estimates of occupancy and abundance [@mackenzieEstimatingSiteOccupancy2003], although only Ubc mbd and Ubc gaica mbd recorded detection covariates (e.g., weather, noise) systematically.
 
-![The temporal distribution of point count sampling across 5 ecoregions, where the shape of the points indicates unique point count locations within a given ecoregion. For example, in El Piedemonte GAICA resampled the same point count locations in October of 2016 and March of 2017 (depicted as crosses). Each point represents a date that point counts were sampled, with point count locations resampled across sampling periods in four ecoregions (Bajo Magdalena, Cafetera, Piedemonte, Rio Cesar). Note that contractors did not survey point count locations sampled by other contractors, with the exception of 54 point counts sampled in 2019 by Unillanos and in 2022 by UBC (depicted as diamonds).](../../../Figures/Pc_month_year_day_ecoregion.png){#fig-temporal-sampling}
+![The temporal distribution of point count sampling across 5 ecoregions, where the shape of the points indicates unique point count locations within a given ecoregion. For example, in El Piedemonte GAICA resampled the same point count locations in October of 2016 and March of 2017 (depicted as crosses). Each point represents a date that point counts were sampled, with point count locations resampled across sampling periods in four ecoregions (Bajo Magdalena, Cafetera, Piedemonte, Rio Cesar).](../../../Figures/Pc_month_year_day_ecoregion.png){#fig-temporal-sampling}
 
 ### Research methods
 
@@ -479,9 +483,7 @@ Ecor_pc_no_pdm <- Ecor_pc %>%
 
 a.  Field/laboratory: Description or reference to standard field/laboratory methods\
     \
-    In general, point counts were conducted for 10 minutes and with a 50-m fixed radius, although CIPAV employed a different methodology (25-m radius, variable amount of time; Table 1). Point counts were mostly conducted in the morning, between sunrise and 11 AM (`r Per_bfor_11`%), although some data collectors also surveyed in the afternoon. Data sets differ in the intensity with which farms were surveyed – some data sets contain fewer farms that were more heavily sampled (e.g., Unillanos mbd), whereas others surveyed many farms but with less sampling intensity (e.g., Cipav mbd; @fig-pc-farm-db). In all data sets except Cipav mbd, point count surveys were repeated on consecutive days which permits modeling of detectability (3 - 5 repeat surveys at each point count; @fig-pc-farm-db), although only Ubc mbd and Ubc gaica mbd recorded detection covariates (e.g., weather, noise) systematically. Within each farm, point counts were generally separated by 100 - 150 meters to ensure independence (but there were exceptions). Note that excluding CIPAV, all data collectors recorded whether observations were flyovers (i.e., they did not use the habitat). Please see the 'Birds_SSP_Colombia_Detailed_methodologies' document for a more detailed accounting of the methods utilized by each data collector.
-
-    The Piedemonte ecoregion had the most comprehensive sampling, with about half of the total point count locations (n = `r Pc_piedemonte`) sampled there. All other ecoregions were surveyed at `r min(Ecor_pc_no_pdm$n)` – `r max(Ecor_pc_no_pdm$n)` unique locations.\
+    Generally, point counts were conducted for 10 minutes in the morning, between sunrise and 11 AM (`r Per_bfor_11`%), recording all birds seen or heard within a 50-m fixed radius. CIPAV mbd employed a different methodology, using a 25-m radius and surveying for a variable amount of time, as did GAICA Distancia, estimating distance to any bird seen or heard and surveying the mornings and afternoons (@tbl-by-data-set). Data sets differ in the intensity with which farms were surveyed – some data sets contain fewer farms that were more heavily sampled (e.g., Unillanos mbd), whereas others surveyed many farms but with less sampling intensity (e.g., Cipav mbd; @fig-pc-farm-db). Within each farm, point counts were generally separated by 100 - 150 meters to ensure independence (but there were exceptions). Note that excluding CIPAV, all data collectors recorded whether observations were flyovers (i.e., they did not use the habitat). Please see the 'Birds_SSP_Colombia_Detailed_methodologies' document for a more detailed accounting of the methods utilized by each data collector. The Piedemonte ecoregion had the most comprehensive sampling, with about half of the total point count locations (n = `r Pc_piedemonte`) sampled there. All other ecoregions were surveyed at `r min(Ecor_pc_no_pdm$n)` – `r max(Ecor_pc_no_pdm$n)` unique locations.\
 
 ![Each data set has bird information from point counts clustered within farms. Each point represents a farm and the x-axis conveys the number of unique point count locations at each farm. The colors correspond to the number of repeat surveys at each point count, rounded to the nearest whole number. The number of distinct farms within each data set is printed to the right of each boxplot. Note that this text is to the left of the most heavily sampled farm in the 'Unillanos mbd' and 'Ubc mbd' data sets (24 point counts) for display reasons.](../../../Figures/Pc_per_farm_db.png){#fig-pc-farm-db}
 
@@ -535,15 +537,15 @@ Status of data quality assurance checking
 
 \[ECOTROPICO\] - In collaboration with the data collectors, AAS, AH, and JH took extensive quality-control checks. Primarily, this consisted of cross-checking data collected in the field against the stated methodologies from each data set (see 'Birds_SSP_Colombia_Detailed_methodologies' file). For example, we confirmed the empirical sampling dates and times against the reported point count schedules. Additional quality assurance procedures included:
 
-- Taxonomy - Species names were compared against Ayerbe’s 2018 field guide to the birds of Colombia [@ayerbe2018guia].
+- Taxonomy - Species names were compared against Ayerbe’s *Guide to the birds of Colombia* [@ayerbe2018guia].
 
-- Distributions - Species observations were compared against distributional ranges [@velezDistributionBirdsColombia2021] and elevational ranges [@quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022].
+- Distributions - Species observations were compared against distributional ranges [@velezDistributionBirdsColombia2021; @suarez-castroIntegratingMultipleData2024] and elevational ranges [@quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021].
 
 - Geospatial - Point count coordinates were verified to ensure that 1) the coordinates aligned with the reported department, 2) the proximity of point counts within an `Id_group` was reasonable (\< 2 km), and that 3) minimum point count spacing was consistent with that specified in the methodology.
 
 - Habitat verification - Descriptive habitat types were standardized and cross-referenced with Google Earth imagery to confirm correspondence; discrepancies within \<50 m were considered acceptable given potential GPS error \[To do - Indicate inconsistencies in the Excel somehow\]
 
-With the help of data collectors, AAS standardized the taxonomy according to the AOS–SACC (see 'Taxonomy.csv'). The location of species observed during point counts were then compared to species distribution shapefiles that contained 1890 species (\~97% of species in Colombia) to identify potential erroneous misidentifications [@velezDistributionBirdsColombia2021]. Given the strong influence that topography has on species distributions in Colombia, we also compared species' observed elevations to elevational ranges reported in [@quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022], using data from Colombia or other Andean countries where possible. All species observed outside of the species distributional range, or at an elevation \>150 meters above or below the elevational range found in the literature, were sent to the original data collector for review. Data collectors made recommendations for each species in question, falling into three categories: 1) the species identification and spatial information was correct (suggesting a range expansion), 2) the species was misidentified or wrongly transcribed and should be changed to a different species, or 3) if uncertain, the species should be removed from the database.
+With the help of data collectors, AAS standardized the taxonomy according to the AOS–SACC (see 'Taxonomy.csv'). The location of species observed during point counts were then compared to species distribution shapefiles that contained 1890 species (\~97% of species in Colombia) to identify potential erroneous misidentifications [@velezDistributionBirdsColombia2021; @suarez-castroIntegratingMultipleData2024]. Given the strong influence that topography has on species distributions in Colombia, we also compared species' observed elevations to elevational ranges reported in [@ayerbe2018guia; @quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021]. All species observed outside of the species distributional range, or at an elevation \>150 meters above or below the elevational range found in the literature, were sent to the original data collector for review. Data collectors made recommendations for each species in question, falling into three categories: 1) the species identification and spatial information was correct (suggesting a range expansion), 2) the species was misidentified or wrongly transcribed and should be changed to a different species, or 3) if uncertain, the species should be removed from the database.
 
 CMK - NOTE:: CIPAV never did this exercise, and GAICA did not finish despite it being in their most recent 2024 contract (which TNC paid for). GAICA is no longer responding to my emails.
 
@@ -653,29 +655,40 @@ Units of measurement associated with each variable
 
 ### Data type
 
-Data files can be joined together by join keys (i.e., columns), according to the needs of the analyst (see 'Data_joining_example.R'). The `Bird_abundances` and `Event_covs` data sets have the join keys `Id_muestreo` and `Id_muestreo_no_dc`. The `Site_covs` data set has the join key `Id_muestreo_no_dc`. The `Bird_pcs_all`, `Taxonomy`, and `Functional_traits` data sets all share the join key `Species_ayerbe`.
+Data files can be joined together by join keys (i.e., columns), according to the needs of the analyst (see 'Data_joining_example.R'). The `Bird_abundances` and `Event_covs` data sets have the join keys `Id_survey` and `Id_survey_no_dc`. The `Site_covs` data set has the join key `Id_survey_no_dc`. The `Bird_pcs_all`, `Taxonomy`, and `Functional_traits` data sets all share the join key `Species_ayerbe`.
 
-For each dataset, we provide column definitions and associated metadata. For brevity, we do not provide definitions for the `Bird_pcs_analysis` data set because it is just a subset of `Bird_pcs_all`. Specifically, `Bird_pcs_analysis` only contains the species observed within the fixed point count radius and that used the habitat (i.e., not a flyover; see 'Scripts/08_Analysis_wrangling.R'). Similarly, definitions of the join keys (`Field_names`) are only shown in the first table they appear and are not repeated in subsequent tables. Any omitted columns are noted in the table caption. Please see the 'Column_definitions_final.xlsx', particularly the 'Column_content_definition' column, for additional information about variables. Within the .csv files, missing values are shown as blank cells `" "`.
+For each dataset, we provide column definitions and associated metadata. For brevity, we do not provide definitions for the `Bird_pcs_analysis` data set because it is just a subset of `Bird_pcs_all`. Specifically, `Bird_pcs_analysis` only contains the species observed within the fixed point count radius and that used the habitat (i.e., not a flyover; see 'Scripts/06_Analysis_wrangling.R'). Similarly, definitions of the join keys (`Field_names`) are only shown in the first table they appear and are not repeated in subsequent tables. Any omitted columns are noted in the table caption. Please see the 'Column_definitions_final.xlsx', particularly the 'Column_content_definition' column, for additional information about variables. Within the .csv files, missing values are shown as blank cells `" "`.
 
 ```{r}
 #| label: Print-table-fn
  
-# Print table function 
-Print_tbl <- function(df, join_df = NULL, remove_field = NULL){
-  if(!is.null(join_df)){ 
+# Print table function
+# drop_datatype: the Functional_traits table carries an extra column (Source), so it drops the low-value Data type column and tightens widths to stay within the page. The other tables keep Data type.
+Print_tbl <- function(df, join_df = NULL, remove_field = NULL, drop_datatype = FALSE){
+  if(!is.null(join_df)){
     df <- df %>% left_join(join_df)
   }
-  
+
   if(!is.null(remove_field)){
     df <- df %>% filter(!Field_name %in% {{ remove_field }})
   }
 
-  df %>% relocate(Definition, .after = Field_name) %>%
-    rename_with(.fn = ~str_replace(., "_", " ")) %>% 
+  df <- df %>% relocate(Definition, .after = Field_name) %>%
+    relocate(any_of("Source"), .after = Definition)   # only the Functional_traits sheet carries a Source column
+  if(drop_datatype) df <- df %>% select(-any_of("Data_type"))
+
+  out <- df %>%
+    rename_with(.fn = ~str_replace(., "_", " ")) %>%
     kable("latex", booktabs = TRUE, longtable = TRUE, escape = TRUE) %>%
-    kable_styling(latex_options = c("striped", "hold_position"), 
-                  position = "center") %>%
-    column_spec(2, width = "5cm")
+    kable_styling(latex_options = c("striped", "hold_position"), position = "center") %>%
+    column_spec(2, width = if (drop_datatype) "4cm" else "5cm")
+  if(drop_datatype){
+    # the last two columns are always Low/High range; a Source column (when the sheet has one) sits between Definition and them
+    n <- ncol(df)
+    if("Source" %in% names(df)) out <- out %>% column_spec(3, width = "1.9cm")
+    out <- out %>% column_spec(n - 1, width = "2.5cm") %>% column_spec(n, width = "2.5cm")
+  }
+  out
 }
 ```
 
@@ -689,8 +702,6 @@ Covs_defs <- map(excel_sheets(path), \(sheet){
 })
 names(Covs_defs) <- Sheet_names
 
-names(Data$Event_covs)
-
 # Bring in metadata list
 Cols_metadata_l <- readRDS("Rdata/Cols_metadata_l.rds")
 ```
@@ -699,32 +710,30 @@ Cols_metadata_l <- readRDS("Rdata/Cols_metadata_l.rds")
 #| label: tbl-bird-abundances-meta
 #| tbl-cap: Metadata associated with the principal Bird point counts ('Bird_pcs_all.csv') dataset, including the identifying information of the point count.
 
-
 Print_tbl(df = Cols_metadata_l$Bird_abu, join_df = Covs_defs$Bird_abundances)
 ```
 
 ```{r}
 #| label: tbl-site-covs-meta
-#| tbl-cap: Metadata associated with the 'Site_covs.csv' dataset, i.e. site-specific covariates (e.g., Elevation) that do not change across surveys. The definition for 'Id_muestreo_no_dc' is not provided. 
+#| tbl-cap: Metadata associated with the 'Site_covs.csv' dataset, i.e. site-specific covariates (e.g., Elevation) that do not change across surveys. The definition for 'Id_survey_no_dc' is not provided. 
 
 
 Print_tbl(df = Cols_metadata_l$Site_covs, join_df = Covs_defs$Site_covs, 
-          remove_field = "Id_muestreo_no_dc")
+          remove_field = "Id_survey_no_dc")
 ```
 
 ```{r}
 #| label: tbl-event-covs-meta
-#| tbl-cap: Metadata associated with the 'Event_covs.csv' dataset, i.e. covariates related to the timing of the survey (e.g., date) or survey-specific covariates that can change across surveys (e.g., weather). The definitions for 'Id_muestreo', 'Id_muestreo_no_dc', 'Fecha', and 'Pc_start' are not provided.
+#| tbl-cap: "Metadata associated with the 'Event_covs.csv' dataset, i.e. covariates related to the timing of the survey (e.g., date) or survey-specific covariates that can change across surveys (e.g., weather). The definitions for 'Id_survey', 'Id_survey_no_dc', 'Date', and 'Pc_start' are not provided."
 
 
 Print_tbl(df = Cols_metadata_l$Event_covs, join_df = Covs_defs$Event_covs,
-          remove_field = c("Id_muestreo", "Id_muestreo_no_dc", "Fecha", 'Pc_start'))
+          remove_field = c("Id_survey", "Id_survey_no_dc", "Date", 'Pc_start'))
 ```
 
 ```{r}
 #| label: tbl-taxonomy-meta
 #| tbl-cap: Metadata associated with the 'Taxonomy.csv' dataset. The definition for 'Species_ayerbe' is not provided. 
-
 
 Print_tbl(df = Cols_metadata_l$Taxonomy, join_df = Covs_defs$Taxonomy,
           remove_field = "Species_ayerbe")
@@ -732,11 +741,12 @@ Print_tbl(df = Cols_metadata_l$Taxonomy, join_df = Covs_defs$Taxonomy,
 
 ```{r}
 #| label: tbl-functional-traits-meta
-#| tbl-cap: Metadata associated with the 'Functional_traits.csv' dataset. Please reference the 'Metadata' tab in the 'AVONET3_BirdTree.xlsx' (provided by Tobias et al, 2022), for definitions of fields from that source. The definition for 'Species_ayerbe' is not provided.
+#| tbl-cap: "Metadata associated with the 'Functional_traits.csv' dataset. The 'Source' column gives the origin of each trait: AVONET [@tobiasAVONETMorphologicalEcological2022], BIRDBASE [@sekerciogluBIRDBASEGlobalDataset2025], BirdLife (generation length from @birdGenerationLengthsWorlds2020; IUCN status from the HBW/BirdLife checklist), and Ayerbe-Quiñones (2018) [@ayerbe2018guia] for elevational range. See the 'Metadata' tab of the 'AVONET3_BirdTree.xlsx' for detailed definitions of the AVONET fields. The definition for 'Species_ayerbe' is not provided."
 
-Print_tbl(df = Cols_metadata_l$Functional_traits, 
+Print_tbl(df = Cols_metadata_l$Functional_traits,
           join_df = Covs_defs$Functional_traits,
-          remove_field = "Species_ayerbe") 
+          remove_field = "Species_ayerbe",
+          drop_datatype = TRUE)
 ```
 
 ### Data format
@@ -781,7 +791,7 @@ References and locations of maps, photographs, videos, GIS data layers, physical
 
 Description or listing of any algorithms used in deriving, processing, or transforming data
 
-Full code can be found at \[GITHUB REPOSITORY\]
+Code to reproduce figures plus the manuscript (rendered in quarto) can be found at \[Zenodo / Dryad repository\], with version history on github \[link\]
 
 ## E. Archiving
 
@@ -847,5 +857,6 @@ I am grateful to Camila Gómez, Nick Bayly, and several students at the Universi
   - The 5 ecoregions: Please see table 2 and confirm names + descriptions feel representative.
   - I think a shapefile of the rio Cesar for the sampling map if anyone could locate one.
   - Column names: Lets go with English, with a script to translate the column names to Spanish.
+  - I wonder about removing ‘mbd’ and ‘distancia’, and just using Data collector + year to identify the different data sets? The original argument was the ‘Distancia’ dataset was a different research question, but early GAICA surveying (2013-2017) was conducted only in forest as they wanted to understand connectivity, so is also a different research question. GAICA Distancia did also use a different methodology, but so did CIPAV.
 
 # References {.unnumbered}

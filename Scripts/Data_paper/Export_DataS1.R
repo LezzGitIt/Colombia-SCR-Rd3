@@ -1,17 +1,19 @@
 ## PhD birds in silvopastoral landscapes ##
-## Export the DataS1 deposit -- copy the six curated pipeline outputs from Derived/Excels/ into the tracked DataS1/ folder, plus a provenance manifest.
+## Build the DataS1 deposit -- copy the six curated pipeline outputs from Derived/Excels/ into the tracked DataS1/ folder, plus a provenance manifest and a Spanish-header lookup.
 
 ## DataS1/ holds only the final deposit tables; mid-pipeline artifacts that a reader can reproduce from the pipeline (e.g. Bird_pcs_dist.csv, the range-screening step) are deliberately excluded.
 
-## Run this AFTER a full pipeline run (Scripts/01_ .. 06_). The Derived/Excels/ outputs are already in deposit format (column selection + naming happen in each script's export section); this step only freezes them into the versioned DataS1/ folder so a re-export is a clean `git diff`.
+## The pipeline writes English headers, so this step is mostly a freeze-into-place. It also validates every header against Suppfiles/column_names.csv (run Translate_column_names.R to refresh that) and writes DataS1/Column_names_ES.csv so a downloader can regenerate Spanish headers with DataS1/Make_Spanish_headers.R.
 
+## Run this AFTER a full pipeline run (Scripts/01_ .. 06_). Column selection / ordering happen in each script's export section.
 ## Column_definitions_final.xlsx is hand-maintained and is NOT overwritten here.
 
 # Setup -----------------------------------------------------------------------
 library(readr)
 library(purrr)
+library(dplyr)
 
-# Map DataS1 filename -> its producing script's Derived/Excels/ path ----------
+# Map DataS1 table -> its producing script's Derived/Excels/ path -------------
 source_paths <- c(
   Bird_pcs_all      = "Derived/Excels/Bird_pcs/Bird_pcs_all.csv",       # 02
   Bird_pcs_analysis = "Derived/Excels/Bird_pcs/Bird_pcs_analysis.csv",  # 06_Analysis_wrangling
@@ -20,44 +22,62 @@ source_paths <- c(
   Site_covs         = "Derived/Excels/Site_covs.csv",                   # 01
   Taxonomy          = "Derived/Excels/Taxonomy/Taxonomy.csv"            # 02
 )
+crosswalk_path <- "Suppfiles/column_names.csv"
 
-# Guard: every source must exist ---------------------------------------------
+# Guards --------------------------------------------------------------------
 missing <- source_paths[!file.exists(source_paths)]
 if (length(missing) > 0) {
-  stop(
-    "Missing pipeline outputs -- run the upstream scripts first:\n",
-    paste0("  ", names(missing), ": ", missing, collapse = "\n")
-  )
+  stop("Missing pipeline outputs -- run the upstream scripts first:\n",
+       paste0("  ", names(missing), ": ", missing, collapse = "\n"))
 }
+if (!file.exists(crosswalk_path)) stop("Missing ", crosswalk_path, " -- run Translate_column_names.R first.")
 
-# Copy into DataS1/ ----------------------------------------------------------
+crosswalk <- read_csv(crosswalk_path, show_col_types = FALSE) %>%
+  mutate(name_en = coalesce(na_if(name_en, ""), name_current))
+to_en <- setNames(crosswalk$name_en, crosswalk$name_current)
+
+# Build DataS1/ -----------------------------------------------------------
 dir.create("DataS1", showWarnings = FALSE)
 
-copied <- imap_chr(source_paths, function(src, name) {
+exported <- imap(source_paths, function(src, name) {
+  df <- read_csv(src, show_col_types = FALSE)
+  unmapped <- base::setdiff(names(df), names(to_en))
+  if (length(unmapped)) {
+    stop(name, ".csv has headers absent from the crosswalk: ", paste(unmapped, collapse = ", "),
+         "\n  -> run Translate_column_names.R to refresh Suppfiles/column_names.csv")
+  }
+  names(df) <- unname(to_en[names(df)])   # identity for already-English headers; a safety net for drift
   dest <- file.path("DataS1", paste0(name, ".csv"))
-  file.copy(src, dest, overwrite = TRUE)
-  dest
-})
+  write_csv(df, dest)
+  tibble(file = paste0(name, ".csv"), source = src, rows = nrow(df))
+}) %>% list_rbind()
+
+# Spanish-header lookup for the deposited translation script -----------------
+## english,spanish for every deposited column that has a Spanish name; Make_Spanish_headers.R uses this
+es_lookup <- crosswalk %>%
+  filter(!is.na(name_es), name_es != "") %>%
+  distinct(english = name_en, spanish = name_es) %>%
+  arrange(english)
+write_csv(es_lookup, "DataS1/Column_names_ES.csv")
+n_missing_es <- crosswalk %>% filter(is.na(name_es) | name_es == "") %>% nrow()
 
 # Provenance manifest ------------------------------------------------------
-git_sha <- tryCatch(
-  system("git rev-parse --short HEAD", intern = TRUE),
-  error = function(e) NA_character_, warning = function(w) NA_character_
-)
-
-row_counts <- map_int(source_paths, \(p) nrow(suppressMessages(read_csv(p, show_col_types = FALSE))))
-
+git_sha <- tryCatch(system("git rev-parse --short HEAD", intern = TRUE),
+                    error = function(e) NA_character_, warning = function(w) NA_character_)
 manifest <- c(
   "DataS1 export manifest",
   paste("exported_at:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")),
   paste("pipeline_commit:", git_sha),
+  "headers: English",
   "",
   "file,source,rows",
-  paste(paste0(names(source_paths), ".csv"), source_paths, row_counts, sep = ",")
+  paste(exported$file, exported$source, exported$rows, sep = ",")
 )
 writeLines(manifest, "DataS1/EXPORT_manifest.txt")
 
 # Console report --------------------------------------------------------------
-cat("Exported", length(copied), "files to DataS1/ (commit", git_sha, ")\n")
-print(data.frame(file = paste0(names(source_paths), ".csv"), rows = row_counts, row.names = NULL))
-cat("\nReview with:  git diff --stat DataS1/\n")
+cat("Exported", nrow(exported), "files to DataS1/ (commit", git_sha, ")\n")
+print(as.data.frame(exported[c("file", "rows")]))
+cat("\nColumn_names_ES.csv:", nrow(es_lookup), "columns with a Spanish name;",
+    n_missing_es, "still blank in the crosswalk.\n")
+cat("Review with:  git diff --stat DataS1/\n")

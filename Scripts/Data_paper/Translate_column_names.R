@@ -1,7 +1,16 @@
 ## PhD birds in silvopastoral landscapes ##
-## Standardize DataS1 column headers to English, then produce Spanish-headed copies -- a few pipeline headers are still Spanish (Fecha, Departamento, ...); the deposit ships all-English (Diego C267), with Spanish copies alongside.
+## Maintain the column-name crosswalk. The pipeline now writes English headers, so DataS1/ is
+## already English; this crosswalk exists to carry the Spanish equivalents. Export_DataS1.R
+## writes DataS1/Column_names_ES.csv from it, and a downloader regenerates the Spanish tables
+## with DataS1/Make_Spanish_headers.R.
 
-## The crosswalk is Suppfiles/column_names.csv (name_current, name_en, name_es, tables). "Refresh crosswalk" keeps filled rows, adds any new deposit column (name_en pre-filled to name_current as a starting point), and drops retired ones. "Write copies" applies it: name_current -> name_en for DataS1_en/, name_en -> name_es for DataS1_es/.
+## Crosswalk: Suppfiles/column_names.csv (name_current, name_en, name_es, tables).
+## name_current = the header the pipeline writes in Derived/Excels/ (English after the 2026 rename).
+## name_en      = the English deposit header (defaults to name_current).
+## name_es      = the Spanish deposit header (fill every row).
+
+## This script only refreshes the crosswalk against the current pipeline outputs and reports
+## what still needs a Spanish name. It writes nothing into the deposit.
 
 # Setup ---------------------------------------------------------------------
 library(readr)
@@ -9,27 +18,27 @@ library(dplyr)
 library(purrr)
 library(tibble)
 
-deposit_dir    <- "DataS1"
 crosswalk_path <- "Suppfiles/column_names.csv"
-out_dir_en     <- "Derived/DataS1_en"   # gitignored -- all-English headers
-out_dir_es     <- "Derived/DataS1_es"   # gitignored -- Spanish headers
 
-# One entry per deposited table -- Bird_pcs_dist is intentionally not part of the deposit
-deposit_files <- c("Bird_pcs_all", "Bird_pcs_analysis", "Event_covs",
-                   "Site_covs", "Taxonomy", "Functional_traits")
+# Deposit source files -- must stay in sync with Export_DataS1.R's source_paths
+deposit_source <- c(
+  Bird_pcs_all      = "Derived/Excels/Bird_pcs/Bird_pcs_all.csv",
+  Bird_pcs_analysis = "Derived/Excels/Bird_pcs/Bird_pcs_analysis.csv",
+  Event_covs        = "Derived/Excels/Event_covs.csv",
+  Site_covs         = "Derived/Excels/Site_covs.csv",
+  Taxonomy          = "Derived/Excels/Taxonomy/Taxonomy.csv",
+  Functional_traits = "Derived/Excels/Traits/Functional_traits.csv"
+)
 
 # Current headers of every deposit table -----------------------------------
-headers <- map(set_names(deposit_files), \(f) {
-  names(read_csv(file.path(deposit_dir, paste0(f, ".csv")), n_max = 0, show_col_types = FALSE))
-})
-
-# One row per distinct current header, with the tables it appears in
-headers_tbl <- imap(headers, \(cols, f) tibble(name_current = cols, table = f)) |>
+headers_tbl <- imap(deposit_source, \(path, tbl) {
+  tibble(name_current = names(read_csv(path, n_max = 0, show_col_types = FALSE)), table = tbl)
+}) |>
   list_rbind() |>
   summarize(tables = paste(sort(unique(table)), collapse = "; "), .by = name_current)
 
 # Refresh crosswalk -------------------------------------------------------
-## Carry over filled name_en / name_es; new columns arrive with name_en = name_current as a default to override
+## Carry over filled name_en / name_es; new columns arrive with name_en = name_current; retired columns drop out
 existing <- if (file.exists(crosswalk_path)) {
   read_csv(crosswalk_path, show_col_types = FALSE) |> select(name_current, name_en, name_es)
 } else {
@@ -38,7 +47,7 @@ existing <- if (file.exists(crosswalk_path)) {
 
 crosswalk <- headers_tbl |>
   left_join(existing, by = "name_current") |>
-  mutate(name_en = coalesce(name_en, name_current)) |>
+  mutate(name_en = coalesce(na_if(name_en, ""), name_current)) |>
   select(name_current, name_en, name_es, tables) |>
   arrange(name_current)
 
@@ -46,27 +55,18 @@ write_csv(crosswalk, crosswalk_path, na = "")
 
 # Console report --------------------------------------------------------------
 no_es <- crosswalk |> filter(is.na(name_es) | name_es == "")
-cat("Crosswalk:", nrow(crosswalk), "columns;",
-    sum(crosswalk$name_en != crosswalk$name_current), "renamed to English so far;",
-    nrow(no_es), "still need name_es.\n")
-cat("Edit", crosswalk_path, "-- set name_en for the Spanish headers, then fill every name_es.\n")
+cat("Crosswalk:", nrow(crosswalk), "columns;", nrow(no_es), "still need name_es.\n")
+if (nrow(no_es)) cat("  ", paste(no_es$name_current, collapse = ", "), "\n")
+cat("Edit", crosswalk_path, "then run Export_DataS1.R.\n")
 
-# Write copies -----------------------------------------------------------
-stop()   # guard -- only run past here once name_en and name_es are settled
+stop()   # nothing below -- Export_DataS1.R does the deposit build
 
-if (nrow(no_es) > 0) stop("Fill name_es for every row in ", crosswalk_path, " first.")
-
-write_renamed <- function(from_dir, to_dir, from_col, to_col) {
-  dir.create(to_dir, showWarnings = FALSE, recursive = TRUE)
-  rename_map <- deframe(select(crosswalk, all_of(c(from_col, to_col))))
-  walk(deposit_files, \(f) {
-    df <- read_csv(file.path(from_dir, paste0(f, ".csv")), show_col_types = FALSE)
-    names(df) <- rename_map[names(df)]
-    write_csv(df, file.path(to_dir, paste0(f, ".csv")))
-  })
-}
-
-write_renamed(deposit_dir, out_dir_en, "name_current", "name_en")   # -> Derived/DataS1_en/
-write_renamed(out_dir_en,  out_dir_es, "name_en",      "name_es")   # -> Derived/DataS1_es/
-
-cat("Wrote English copies to", out_dir_en, "and Spanish copies to", out_dir_es, "\n")
+# Optional: local preview of the Spanish-headed tables (Derived/ is gitignored) ----
+if (nrow(no_es) > 0) stop("Fill every name_es first.")
+rename_to <- function(df, from, to) { m <- stats::setNames(crosswalk[[to]], crosswalk[[from]]); names(df) <- m[names(df)]; df }
+walk2(names(deposit_source), deposit_source, \(tbl, path) {
+  dir.create("Derived/DataS1_es", showWarnings = FALSE, recursive = TRUE)
+  df <- read_csv(path, show_col_types = FALSE) |> rename_to("name_en", "name_es")
+  write_csv(df, file.path("Derived/DataS1_es", paste0(tbl, ".csv")))
+})
+cat("Wrote Spanish-headed preview copies to Derived/DataS1_es/\n")

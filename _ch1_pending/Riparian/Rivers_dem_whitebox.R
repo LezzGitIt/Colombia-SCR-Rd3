@@ -29,7 +29,6 @@ region            <- "Piedemonte"   # ecoregion to test on
 breach_dist       <- 200           # least-cost breach search radius (cells)
 export_threshold  <- 250           # flow-accum cutoff (cells) to vectorise + export as KML
 analysis_buffer_m <- 3000          # clip the exported network to this buffer around the point counts
-n_top_candidates  <- 50            # export this many non-riparian-labelled points, ranked by riparian_score, as a review KML
 utm18n            <- "EPSG:32618"
 dem_source        <- "fabdem"      # used only to tag output filenames
 
@@ -38,7 +37,7 @@ thresholds <- c(100, 250, 500, 1000, 2000, 4000)
 
 wb_dir  <- "Derived/Geospatial/Whitebox"
 dem_dir <- "Derived/Geospatial/DEM"
-out_dir <- "Figures/Rivers_check"
+out_dir <- "_ch1_pending/Riparian"   # outputs land next to the hand-edited Riparian_review.csv (this whole folder is Chapter 1 material)
 walk(c(wb_dir, dem_dir, out_dir), dir.create, showWarnings = FALSE, recursive = TRUE)
 
 # Point counts + riparian flag (from the pipeline) ----------------------
@@ -50,13 +49,13 @@ pc_hab_loc <- Pc_hab %>%
             any_forest       = any(Habitat == "Bosque", na.rm = TRUE),
             water_body_ever  = dplyr::first(Water_body_ever),   # NA where no metadata form asked Cuerpo_de_agua
             water_body_types = dplyr::first(Water_body_types),
-            .by = Id_muestreo_no_dc)
+            .by = Id_survey_no_dc)
 
 points_sf <- Pc_locs_sf %>%
-  distinct(Id_muestreo_no_dc, .keep_all = TRUE) %>%
+  distinct(Id_survey_no_dc, .keep_all = TRUE) %>%
   filter(Ecoregion == region) %>%
-  select(Id_muestreo_no_dc, Id_gcs) %>%
-  left_join(pc_hab_loc, by = "Id_muestreo_no_dc") %>%
+  select(Id_survey_no_dc, Id_scr) %>%
+  left_join(pc_hab_loc, by = "Id_survey_no_dc") %>%
   mutate(group = case_when(is_riparian ~ "Riparian forest",
                            any_forest  ~ "Other forest",
                            .default    = "Non-forest"))
@@ -203,7 +202,7 @@ points_sf |>
   st_drop_geometry() |>
   filter(!is_riparian) |>
   arrange(desc(riparian_score)) |>
-  select(Id_muestreo_no_dc, Id_gcs, riparian_score) |>
+  select(Id_survey_no_dc, Id_scr, riparian_score) |>
   slice_head(n = 15) |>
   print(n = 15)
 
@@ -213,9 +212,9 @@ write.csv(points_sf |> st_drop_geometry() |> arrange(desc(riparian_score)),
 ## Review sheet for Aaron to manually confirm/correct riparian status on every Piedemonte point. Aaron_rip is pre-filled "PE" (pre-existing) where the field label already says riparian, blank otherwise, for Aaron to fill in.
 review_sheet <- points_sf |>
   st_drop_geometry() |>
-  left_join(Site_covs |> select(Id_muestreo_no_dc, Nombre_finca, Habitat, Habitat_sub), by = "Id_muestreo_no_dc") |>
+  left_join(Site_covs |> select(Id_survey_no_dc, Farm_name, Habitat, Habitat_sub), by = "Id_survey_no_dc") |>
   mutate(Aaron_rip = if_else(is_riparian, "PE", NA_character_)) |>
-  select(Point_count = Id_muestreo_no_dc, Id_gcs, Farm = Nombre_finca, riparian_score, Habitat, Habitat_sub,
+  select(Point_count = Id_survey_no_dc, Id_scr, Farm = Farm_name, riparian_score, Habitat, Habitat_sub,
          Water_body_ever = water_body_ever, Water_body_types = water_body_types, Aaron_rip) |>
   arrange(Point_count)
 
@@ -225,7 +224,7 @@ cat("Riparian review sheet written:\n  ", review_csv, "\n")
 
 # Export the chosen threshold as KML for Google Earth ------------------
 points_kml <- points_sf |>
-  transmute(Name = Id_muestreo_no_dc, Id_gcs, group, riparian_score, Water_body_ever = water_body_ever) |>
+  transmute(Name = Id_survey_no_dc, Id_scr, group, riparian_score, Water_body_ever = water_body_ever) |>
   st_transform(4326)
 
 kml_streams <- file.path(out_dir, paste0("dem_whitebox_", dem_source, "_streams_thr", export_threshold, ".kml"))
@@ -233,15 +232,3 @@ kml_points  <- file.path(out_dir, paste0(tolower(region), "_point_counts.kml"))
 st_write(streams_kml, kml_streams, driver = "KML", delete_dsn = TRUE, quiet = TRUE)
 st_write(points_kml, kml_points, driver = "KML", delete_dsn = TRUE, quiet = TRUE)
 cat("\nKML written:\n  ", kml_streams, "\n  ", kml_points, "\n")
-
-## Top N non-riparian-labelled points by score -- relabelling candidates for manual review
-top_candidates <- points_sf |>
-  filter(!is_riparian) |>
-  arrange(desc(riparian_score)) |>
-  slice_head(n = n_top_candidates) |>
-  transmute(Name = Id_muestreo_no_dc, Id_gcs, riparian_score, group, Water_body_ever = water_body_ever) |>
-  st_transform(4326)
-
-kml_top <- file.path(out_dir, paste0("dem_whitebox_", dem_source, "_top", n_top_candidates, "_candidates.kml"))
-st_write(top_candidates, kml_top, driver = "KML", delete_dsn = TRUE, quiet = TRUE)
-cat("Top", n_top_candidates, "candidate KML written:\n  ", kml_top, "\n")

@@ -64,7 +64,7 @@ Three_way_join
 
 Data$Bird_pcs_all %>% 
   left_join(Data$Functional_traits) %>%
-  select(Species_ayerbe, Id_muestreo, 14:37)
+  select(Species_ayerbe, Id_survey, 14:37)
 
 # Missing data ------------------------------------------------------------
 # >No species observed at a point count  ---------------------------------
@@ -75,10 +75,10 @@ Data$Event_covs %>% filter(Spp_obs == 0) %>%
 nrow(Birds_event_covs) - nrow(Data$Bird_pcs_all)
 
 # Given that Bird_pcs_analysis is a subset of Bird_pcs_all, there are additional point counts that were surveyed but have no data in Bird_pcs_analysis. For example, the point count "UBC-MB-M-A_02" contains 52 observations, but all of them were either >50m from the observer or were flyovers (Sobrevuelo). 
-Data$Bird_pcs_all %>% filter(Id_muestreo == "UBC-MB-M-A_02") %>% 
-  distinct(Distancia_bird, Tipo_registro)
+Data$Bird_pcs_all %>% filter(Id_survey == "UBC-MB-M-A_02") %>% 
+  distinct(Distance_bird, Obs_type)
 # Thus, it has no observations in the Bird_pcs_analysis tibble
-Data$Bird_pcs_analysis %>% filter(Id_muestreo == "UBC-MB-M-A_02") 
+Data$Bird_pcs_analysis %>% filter(Id_survey == "UBC-MB-M-A_02") 
 # There are 101 point counts like this, that are present in Bird_pcs_all but not in Bird_pcs_analysis 
 Birds_event_covs_analysis <- Data$Bird_pcs_analysis %>% 
   right_join(Data$Event_covs) %>% 
@@ -92,7 +92,7 @@ miss_var_summary(Data$Bird_pcs_analysis) # No missing data!
 
 ## Plot missingness for bird observations data
 # Only UBC GAICA systematically recorded point counts and included that information in data sheets
-# Cipav did not record 'Tipo_registro' (about 9% of the observations)
+# Cipav did not record 'Obs_type' (about 9% of the observations)
 vis_miss(Data$Bird_pcs_all)
 # Examine the co-ocurrence of NAs among variables
 gg_miss_upset(Data$Bird_pcs_all)

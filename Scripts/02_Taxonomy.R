@@ -31,7 +31,7 @@ conflicts_prefer(dplyr::filter)
 # Load data ---------------------------------------------------------------
 ## Bring in data 
 # NOTE: This is just point counts
-Bird_pcs_all_spp <- read_csv("Derived/Excels/Bird_pcs/Bird_pcs_all_spp.csv", guess_max = Inf)   # Grabacion is sparse -- force a full type scan
+Bird_pcs_all_spp <- read_csv("Derived/Excels/Bird_pcs/Bird_pcs_all_spp.csv", guess_max = Inf)   # Recording is sparse -- force a full type scan
 Site_covs <- read_csv("Derived/Excels/Site_covs.csv")
 
 # Specify path 
@@ -71,12 +71,12 @@ Tax_equivalents
 
 # Match bird observations with taxonomic equivalents and create Species_ayerbe column
 Bird_pcs_all_spp2 <- Bird_pcs_all_spp %>%
-  left_join(Site_covs[, c("Id_muestreo_no_dc", "Departamento")]) %>%
+  left_join(Site_covs[, c("Id_survey_no_dc", "Department")]) %>%
   left_join(Tax_equivalents) %>% 
   mutate(Species_ayerbe = coalesce(Species_ayerbe, Species_original)) %>%
-  # If the changes are restricted to certain departments AND the current Departamento is NOT in that list, then overwrite with Species_original. Otherwise keep Species_ayerbe
+  # If the changes are restricted to certain departments AND the current Department is NOT in that list, then overwrite with Species_original. Otherwise keep Species_ayerbe
   mutate(Species_ayerbe = case_when(
-    !is.na(Departamentos_afectados) & !str_detect(Departamentos_afectados, Departamento) ~ Species_original,
+    !is.na(Departamentos_afectados) & !str_detect(Departamentos_afectados, Department) ~ Species_original,
     .default = Species_ayerbe
   ))
 
@@ -274,7 +274,7 @@ Tax_df_final %>% write_csv("Derived/Excels/Taxonomy/Taxonomy.csv")
 Bird_pcs_all_spp2 %>% 
   filter(Species_ayerbe %in% Tax_df_final$Species_ayerbe) %>% 
   relocate(c(Species_ayerbe, Count), .after = Species_original) %>% 
-  select(-c(contains("Departamento"), Species_original)) %>%
+  select(-c(contains(c("Department", "Departamentos_afectados")), Species_original)) %>%
   write_csv("Derived/Excels/Bird_pcs/Bird_pcs_all.csv")
 
 # EXTRAS ------------------------------------------------------------------

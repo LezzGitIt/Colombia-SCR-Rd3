@@ -263,47 +263,54 @@ ggsave("Figures/Map_sampling/South_america_grayscale.png", bg = "white", dpi = 3
 Es_covs <- Event_covs %>% left_join(Site_covs)
 
 Meta_PCs_related <- Es_covs %>%
-  filter(Departamento == "Meta" & Uniq_db == "Gaica mbd") %>%
-  distinct(Id_muestreo, Ano) %>% # head()
-  group_by(Id_muestreo) %>%
-  mutate(Year = paste0("Year", row_number())) %>%
-  pivot_wider(names_from = Year, values_from = Ano) %>%
+  filter(Department == "Meta" & Uniq_db == "Gaica mbd") %>%
+  distinct(Id_survey, Year) %>% # head()
+  group_by(Id_survey) %>%
+  mutate(Visit = paste0("Visit", row_number())) %>%
+  pivot_wider(names_from = Visit, values_from = Year) %>%
   mutate(Grp_spat = case_when( # Spatial group
-    Year1 == 2016 & Year2 == 2017 ~ "G1617" # GAICA 2016-2017 is one group
+    Visit1 == 2016 & Visit2 == 2017 ~ "G1617" # GAICA 2016-2017 is one group
   ))
 
 Pc_date9 <- Es_covs %>%
-  left_join(Meta_PCs_related[, c("Id_muestreo", "Grp_spat")],
-            by = "Id_muestreo"
+  left_join(Meta_PCs_related[, c("Id_survey", "Grp_spat")],
+            by = "Id_survey"
   ) %>%
   mutate(Grp_spat = case_when( # Spatial group
     Grp_spat == "G1617" ~ "G1617",
     Uniq_db == "Gaica distancia" ~ "Distancia",
-    Uniq_db == "Cipav mbd" & Ano == 2016 ~ "CIPAV1",
-    Uniq_db == "Cipav mbd" & Ano == 2017 ~ "CIPAV2",
-    Uniq_db == "Unillanos mbd" | Uniq_db == "Ubc mbd" ~ "UniL_UBC",
+    Uniq_db == "Cipav mbd" & Year == 2016 ~ "CIPAV1",
+    Uniq_db == "Cipav mbd" & Year == 2017 ~ "CIPAV2",
+    Uniq_db == "Unillanos mbd" ~ "UniL_UBC",
     TRUE ~ "Other"
   )) %>%
   # One specific case for CIPAV
-  mutate(Grp_spat = ifelse(Uniq_db == "Cipav mbd" & Ano == 17 & Ecoregion == "Cordillera oriental" & Mes == 4, "CIPAV1", Grp_spat))
+  mutate(Grp_spat = ifelse(Uniq_db == "Cipav mbd" & Year == 17 & Ecoregion == "Cordillera oriental" & Month == 4, "CIPAV1", Grp_spat)) %>%
+  # UBC's solo resurveys (2022 Unillanos, 2025 El Hatico, 2026 Meta) inherit the shape of whoever first surveyed that location, so the resurvey series reads as one set of points; locations UBC surveyed for the first time (e.g. the newer El Hatico points) get their own group rather than folding into "Other"
+  mutate(Grp_spat = {
+    orig <- Grp_spat[Uniq_db != "Ubc mbd" & !is.na(Grp_spat)]
+    if (length(orig)) first(orig)
+    else if (all(Uniq_db == "Ubc mbd")) "UBC_new"
+    else Grp_spat
+  }, .by = Id_survey_no_dc)
 
 # Reduce # of rows to increase readability of plot
 Pc_date_p <- Pc_date9 %>% distinct( #PC_date_plot
-  Nombre_institucion, Grp_spat, Ecoregion, Ano, Mes, Dia, N_samp_periods
+  Institution_name, Grp_spat, Ecoregion, Year, Month, Day, N_samp_periods
 ) %>% 
-  mutate(Ano = str_remove(Ano, "20")) #%>% 
+  mutate(Year = str_remove(Year, "20")) #%>% 
  #Add a random Ecoregion so it doesn't add a 6th 'NA' panel
- #add_row(Ano = as.character(25), Ecoregion = "Cafetera") 
+ #add_row(Year = as.character(25), Ecoregion = "Cafetera") 
 
 # Plot 
-Pc_temporal_plot <- ggplot(data = Pc_date_p, aes(x = factor(Ano), y = Mes)) +
+Pc_temporal_plot <- ggplot(data = Pc_date_p, aes(x = factor(Year), y = Month)) +
   geom_boxplot() +
   geom_jitter(
-    data = filter(Pc_date_p, Nombre_institucion != "Cipav"), size = 3, width = 0.3, alpha = .5, aes(color = Nombre_institucion, shape = Grp_spat)
+    data = filter(Pc_date_p, Institution_name != "Cipav"), size = 3, width = 0.3, alpha = .5, aes(color = Institution_name, shape = Grp_spat)
   ) +
   # Graph CIPAV on top of other points
   geom_jitter(
-    data = filter(Pc_date_p, Nombre_institucion == "Cipav"), size = 3, width = 0.3, alpha = .6, aes(color = Nombre_institucion, shape = Grp_spat)
+    data = filter(Pc_date_p, Institution_name == "Cipav"), size = 3, width = 0.3, alpha = .6, aes(color = Institution_name, shape = Grp_spat)
   ) +
   facet_wrap(~Ecoregion) +
   scale_y_continuous(breaks = seq(0, 12, by = 3)) +
@@ -312,13 +319,15 @@ Pc_temporal_plot <- ggplot(data = Pc_date_p, aes(x = factor(Ano), y = Mes)) +
     size = "Number of distinct \n sampling periods", color = "Data collector",
   ) +
   scale_shape_manual(values = 0:8) +   # one per Grp_spat level (legend hidden below)
-  scale_color_viridis_d() +
+  # Keep the viridis hues for the other collectors, but swap Unillanos off the pale-yellow end (invisible on the white panel) for the Okabe-Ito amber -- colourblind-safe and the conventional warm companion to viridis
+  scale_color_manual(values = c(Cipav = "#440154", Gaica = "#3B528B", Ubc = "#21908C", `Ubc gaica` = "#5DC863", Unillanos = "#E69F00")) +
   guides(shape = "none") +
   theme(legend.position = c(0.8, 0.2),
         legend.text = element_text(size = 20),
         legend.title = element_text(size = 22)
         )
         #legend.key.size = unit(x = c(1,.5), units = "cm")  
+Pc_temporal_plot
 
 # Save plot
 ggsave("Figures/Pc_month_year_day_ecoregion.png", bg = "white", width = 12)
@@ -374,18 +383,18 @@ Calc_mean_prec <- function(df, group_variable){
     group_by({{ group_variable }}) %>%
     summarize_if(is.numeric, mean) %>%
     pivot_longer(cols = starts_with("prec"), 
-                 names_to = "Mes", values_to = "Prec") %>%
-    mutate(Mes = as.numeric(str_remove(Mes, "prec_")))
+                 names_to = "Month", values_to = "Prec") %>%
+    mutate(Month = as.numeric(str_remove(Month, "prec_")))
 }
 #Per Ecoregion
 Prec_ecor <- Calc_mean_prec(df = Prec_df2, group_variable = Ecoregion)
 #Per department
-Prec_depts <- Calc_mean_prec(df = Prec_df2, group_variable = Departamento)
+Prec_depts <- Calc_mean_prec(df = Prec_df2, group_variable = Department)
 
 ## Plot precip for all ecoregions using smoothed GAM
 # cc = cyclic cubic regression spline - Use because the function value at month 12 is constrained to join smoothly back to month 1.
 # k = the basis dimension, i.e. the maximal degrees of freedom. This allows the smoother to be as wiggly as one wiggle per month.
-ggplot(Prec_ecor, aes(x = Mes, y = Prec, color = Ecoregion)) +
+ggplot(Prec_ecor, aes(x = Month, y = Prec, color = Ecoregion)) +
   stat_smooth(method = "gam", formula = y ~ s(x, bs = "cc", k = 12), se = FALSE) +
   scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10, 12)) +
   labs(x = "Month", y = "Precipitation (mm)") + 
@@ -396,20 +405,20 @@ ggsave("Figures/Rainfall/Prec_smoothed.png", bg = "white",
 # Fig4b: Precipitation with sampling dates ---------------------------------
 # PCs_prec are the points that go on the rainfall seasonality plot
 Pcs_prec <- Es_covs %>% 
-  distinct(Uniq_db, Ecoregion, Ano, Mes) %>%
-  left_join(Prec_ecor, by = c("Ecoregion", "Mes")) %>%
-  arrange(Ecoregion, Ano, Mes) %>%
-  mutate(min = Mes - 2, max = Mes + 2, .by = c(Uniq_db, Ecoregion, Ano)) %>% 
+  distinct(Uniq_db, Ecoregion, Year, Month) %>%
+  left_join(Prec_ecor, by = c("Ecoregion", "Month")) %>%
+  arrange(Ecoregion, Year, Month) %>%
+  mutate(min = Month - 2, max = Month + 2, .by = c(Uniq_db, Ecoregion, Year)) %>% 
   # Create variable 'GrpTemp' that is TRUE when a given point count location is sampled in the same year and has the mean fecha julian within the specified tolerance of the other survey dates
   mutate(GrpTemp = case_when( # GrpTemp = Group together temporally?
-    lead(Mes) >= min & lead(Mes) <= max ~ paste0("TRUE", Mes),
-    lag(Mes) >= min & lag(Mes) <= max ~ paste0("TRUE", lag(Mes)),
+    lead(Month) >= min & lead(Month) <= max ~ paste0("TRUE", Month),
+    lag(Month) >= min & lag(Month) <= max ~ paste0("TRUE", lag(Month)),
     TRUE ~ "FALSE"
   )) %>%
   # Manually change one issue
-  mutate(GrpTemp = ifelse(Ecoregion == "Piedemonte" & Ano == 19 & GrpTemp == "TRUE9", "TRUE10", GrpTemp
-  )) %>% summarize(Prec = mean(Prec), Mes_mod = mean(Mes), 
-                   .by = c(Uniq_db, Ecoregion, Ano, GrpTemp))
+  mutate(GrpTemp = ifelse(Ecoregion == "Piedemonte" & Year == 19 & GrpTemp == "TRUE9", "TRUE10", GrpTemp
+  )) %>% summarize(Prec = mean(Prec), Mes_mod = mean(Month), 
+                   .by = c(Uniq_db, Ecoregion, Year, GrpTemp))
 
 ## Plot precipitation for ecoregions 
 
@@ -426,18 +435,18 @@ Plot_prec_samp <- function(regions = "All", dyn_occ = FALSE, facet = TRUE){
     Plot_prec <- Prec_ecor %>%
       ggplot(aes(color = Ecoregion)) + 
       geom_jitter(data = Pcs_prec, size = 4,
-                  aes(x = Mes_mod, y = Prec, shape = factor(Ano)))
+                  aes(x = Mes_mod, y = Prec, shape = factor(Year)))
   } else {
     Plot_prec <- Prec_ecor %>%
       ggplot() +
       geom_jitter(data = Pcs_prec, size = 6, alpha = .5, 
                   aes(x = Mes_mod, y = Prec, 
-                      shape = factor(Ano), color = Uniq_db)) + 
+                      shape = factor(Year), color = Uniq_db)) + 
       guides(color = guide_legend(title = "Data collector"))
   }
   
   Plot_prec2 <- Plot_prec + 
-    geom_line(data = Prec_ecor, aes(x = Mes, y = Prec)) +
+    geom_line(data = Prec_ecor, aes(x = Month, y = Prec)) +
     scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10, 12, 14)) +
     labs(
       x = "Month", y = "Precipitation (mm)",
@@ -471,7 +480,7 @@ ggsave("Figures/Rainfall/Prec_sampling_faceted.png", bg = "white")
 Species_summary <- Bird_pcs_all %>% 
   left_join(Site_covs) %>%
   summarize(Count = sum(as.numeric(Count), na.rm = TRUE), 
-            Localities = n_distinct(Id_muestreo_no_dc),
+            Localities = n_distinct(Id_survey_no_dc),
             .by = c(Species_ayerbe, Ecoregion))
 
 # Custom function to generate the total number of counts or point count locations irrespective of Ecoregion 
@@ -550,13 +559,13 @@ ggsave("Figures/Species_counts_localities.png",
 # Number of pc per farm
 Farm_counts <- Event_covs %>% 
   left_join(Site_covs) %>%
-  distinct(Id_gcs, Uniq_db, Id_muestreo) %>%
-  count(Id_gcs, Uniq_db) %>%
+  distinct(Id_scr, Uniq_db, Id_survey) %>%
+  count(Id_scr, Uniq_db) %>%
   count(Uniq_db, name = "N_farms")
 
 Db_summ <- Event_covs %>% 
   mutate(Max_rep_season = max(Rep_season), 
-         .by = Id_muestreo) %>%
+         .by = Id_survey) %>%
   summarize(Mean_rep_season = mean(Max_rep_season),
             .by = Uniq_db) %>% 
   mutate(Mean_rep_season = as.factor(round(Mean_rep_season, 0))) %>% 
@@ -565,8 +574,8 @@ Db_summ <- Event_covs %>%
 # Number of point counts per farm and database
 Num_pcs_farm_db <- Event_covs %>% 
   left_join(Site_covs) %>%
-  distinct(Id_gcs, Uniq_db, Id_muestreo) %>%
-  count(Id_gcs, Uniq_db, sort = T)
+  distinct(Id_scr, Uniq_db, Id_survey) %>%
+  count(Id_scr, Uniq_db, sort = T)
 ## Generate labels for plot, where eaach label is the number of farms surveyed
 # Adjust the location of the label for UniLlanos & UBC 
 x_loc <- summarize(Num_pcs_farm_db, x_loc = max(n) + 1, .by = Uniq_db) %>% 
@@ -604,8 +613,11 @@ extract_metadata <- function(df){
   map_dfr(names(df), function(col_name) {
     col_data <- df[[col_name]]
     if (inherits(col_data, "hms")) {
-      low_val <- min(as.character(col_data, na.rm = TRUE)) 
+      low_val <- min(as.character(col_data, na.rm = TRUE))
       high_val <- max(as.character(col_data, na.rm = TRUE))
+    } else if (is.numeric(col_data)) {
+      low_val  <- as.character(round(min(col_data, na.rm = TRUE), 2))
+      high_val <- as.character(round(max(col_data, na.rm = TRUE), 2))
     } else {
       low_val <- as.character(min(col_data, na.rm = TRUE))
       high_val <- as.character(max(col_data, na.rm = TRUE))
@@ -657,10 +669,10 @@ Cubarral <- st_as_sf(data.frame(lat = 3.794, long = -73.839),
 Cubarral_coords <- st_coordinates(Cubarral)
 
 Pc_locs_sf %>%
-  left_join(distinct(Bird_pcs_all, Id_muestreo, Id_gcs)) %>%
+  left_join(distinct(Bird_pcs_all, Id_survey, Id_scr)) %>%
   filter(Uniq_db == "UNILLANOS MBD") %>%
   ggplot() +
-  geom_sf(aes(color = Id_gcs)) + 
+  geom_sf(aes(color = Id_scr)) + 
   geom_sf(data = Cubarral, shape = 6, size = 3) +  # Add Cubarral point
   annotation_scale(location = "bl") +  # Add scale bar
   geom_text(aes(x = Cubarral_coords[1], y = Cubarral_coords[2]), 
@@ -683,15 +695,15 @@ neCol %>% ggplot() +
   layer_spatial(bbox, color = "red") +
   geom_sf(
     data = Pc_locs_jit, size = 4, alpha = .3,
-    aes(color = Nombre_institucion, shape = Protocolo_muestreo)
+    aes(color = Institution_name, shape = Protocolo_muestreo)
   ) +
   geom_sf(
     data = filter(Pc_locs_jit, Protocolo_muestreo != "Punto conteo"), size = 4, alpha = .7,
-    aes(color = Nombre_institucion, shape = Protocolo_muestreo)
+    aes(color = Institution_name, shape = Protocolo_muestreo)
   ) +
   geom_sf(
     data = filter(Pc_locs_jit, Protocolo_muestreo == "Telemetria"), size = 4, alpha = .1,
-    aes(color = Nombre_institucion, shape = Protocolo_muestreo)
+    aes(color = Institution_name, shape = Protocolo_muestreo)
   ) +
   coord_sf(
     xlim = c(bbox_all[1], bbox_all[3]), ylim = c(bbox_all[2], bbox_all[4]),

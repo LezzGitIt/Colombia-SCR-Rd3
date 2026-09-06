@@ -33,8 +33,13 @@ conflicts_prefer(dplyr::select)
 conflicts_prefer(dplyr::filter)
 
 ## Load data
-Bird_pcs_all <-  read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_all.csv", guess_max = Inf)   # Grabacion is sparse
-Bird_pcs_dist <- read_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf)
+Bird_pcs_all <-  read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_all.csv", guess_max = Inf)   # Recording is sparse
+# Bird_pcs_dist.csv is both an input and an output of this script; on the first run after the
+# 2026 English rename it may still carry the old Spanish headers, so Anglicise on read
+Bird_pcs_dist <- read_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf) %>%
+  rename(any_of(c(Id_survey = "Id_muestreo", Id_survey_no_dc = "Id_muestreo_no_dc",
+                  Date = "Fecha", Institution_name = "Nombre_institucion", Department = "Departamento",
+                  Distance_bird = "Distancia_bird", Obs_type = "Tipo_registro", Recording = "Grabacion")))
 Elev_ranges <- read_csv(file = "Derived/Excels/Elev_ranges_all_sources.csv")
 Site_covs <- read_csv(file = "Derived/Excels/Site_covs.csv")
 Event_covs_pcs <- read_csv(file = "Derived/Excels/Event_covs_pcs.csv")
@@ -167,13 +172,13 @@ names(range) <- Spp_names
 OutRangeObsDf <- OutRangeObs %>%
   bind_rows() %>%
   rename(DistsKM = DistsKM..i..) %>%
-  dplyr::select(Uniq_db, Nombre_institucion, Count, Departamento, Id_muestreo, Species_ayerbe, Fecha, Lat, Long, DistsKM, Elev) %>%
+  dplyr::select(Uniq_db, Institution_name, Count, Department, Id_survey, Species_ayerbe, Date, Lat, Long, DistsKM, Elev) %>%
   filter(!is.na(DistsKM)) # Remove spp that didn't have associated shapefile (eg Leptotila verreauxi)
 nrow(OutRangeObsDf)
 
 ## IF data collectors separate... Change Uniq_db
 FueraRango <- OutRangeObsDf %>%
-  group_by(Species_ayerbe, Nombre_institucion) %>% # Uniq_db
+  group_by(Species_ayerbe, Institution_name) %>% # Uniq_db
   slice_max(DistsKM, n = 1, with_ties = FALSE) %>%
   full_join(filter(ElevOut, Amount_out_m > 150), by = c("Species_ayerbe")) %>% # , "Uniq_db"
   ungroup() %>%
@@ -181,9 +186,9 @@ FueraRango <- OutRangeObsDf %>%
   mutate(across(where(is.numeric), \(x) round(x, 2))) %>%
   select(-Amount_out_m)
 
-FueraRangoCIPAV <- FueraRango %>% filter(Nombre_institucion == "Cipav")
-FueraRangoGAICA <- FueraRango %>% filter(Nombre_institucion == "Gaica")
-FueraRango %>% filter(Nombre_institucion == "Ubc gaica")
+FueraRangoCIPAV <- FueraRango %>% filter(Institution_name == "Cipav")
+FueraRangoGAICA <- FueraRango %>% filter(Institution_name == "Gaica")
+FueraRango %>% filter(Institution_name == "Ubc gaica")
 
 # These are only 24 additional species not reviewed by GAICA that are 50+ km out of range
 FueraRangoCIPAV %>%
@@ -192,7 +197,7 @@ FueraRangoCIPAV %>%
 
 # NOTE::The numbers of observations is dependent upon whether recorridos libres are removed or not
 FueraRango %>%
-  group_by(Nombre_institucion) %>%
+  group_by(Institution_name) %>%
   count()
 FueraRango %>%
   group_by(Species_ayerbe) %>%
@@ -204,7 +209,7 @@ FueraRango %>%
 # Export Excel files
 # Create combined file irrespective of data collector
 FueraRangoExport <- FueraRango %>%
-  select(-c(Uniq_db, Id_muestreo)) %>%
+  select(-c(Uniq_db, Id_survey)) %>%
   mutate(
     Nombre_cambiado = NA, Departamentos_afectados = NA,
     Recomendacion = NA, Certeza = NA, Observaciones_adicionales = NA
@@ -263,8 +268,8 @@ ElevOut %>%
 ## Plotting loop
 # Select a species with all 5 data collectors, order them and save object
 Instituto_ordered <- aspp_obs_sf$`Amazona ochrocephala` %>% 
-  arrange(Nombre_institucion) %>%
-  pull(Nombre_institucion) %>% 
+  arrange(Institution_name) %>%
+  pull(Institution_name) %>% 
   unique()
 
 # Plotting distribution maps for loop
@@ -281,19 +286,19 @@ for (p in 1:nrow(DistIndEl)) {
     geom_sf(data = neColDepts, fill = NA, col = "orange", alpha = .5) +
     # Plot points in distributional range
     geom_sf(
-      data = aspp_obs_sf[[i]][!TF[[i]], ], aes(shape = Nombre_institucion),
+      data = aspp_obs_sf[[i]][!TF[[i]], ], aes(shape = Institution_name),
       size = 2, color = "black", alpha = .3
     ) +
     # Plot points out of distributional range and in elevational range
     geom_sf(
       data = filter(aspp_obs_sf[[i]][TF[[i]], ], Amount_out_m < 150),
-      aes(shape = Nombre_institucion), size = 2, color = "red", alpha = .6
+      aes(shape = Institution_name), size = 2, color = "red", alpha = .6
     ) +
     scale_shape_manual(values = c(0:4), breaks = Instituto_ordered) +
     # Plot points out of distributional range and out of elevational range
     geom_sf(
       data = aspp_obs_sfEl[[i]], 
-      aes(size = Amount_out_m, shape = Nombre_institucion),
+      aes(size = Amount_out_m, shape = Institution_name),
       color = "red", alpha = .6
     ) +
     scale_size_continuous(limits = c(150, 1800), range = c(2, 10)) + # breaks = c(#, #2, #3, etc.) doesn't work
@@ -339,11 +344,11 @@ dist_plots[sapply(dist_plots, is.null)] <- NULL
 # IF data collectors merged.. Run this
 # Select a species with all 5 data collectors and create a fake plot w/ a legend to extract.
 p_legend <- ggplot(data = aspp_obs_sf$`Amazona ochrocephala`) +
-  geom_sf(aes(shape = Nombre_institucion, size = Amount_out_m)) +
+  geom_sf(aes(shape = Institution_name, size = Amount_out_m)) +
   scale_shape_manual(values = c(0:4), breaks = Instituto_ordered) +
   scale_size_continuous(limits = c(150, 1800), range = c(2, 10))
-# Extract legend and insert it into the last slot of the list
-legend <- ggpubr::get_legend(p_legend)
+# Extract legend and insert it into the last slot of the list (ggpubr::get_legend is broken against ggplot2 >= 3.5, so pull the guide-box grob directly)
+legend <- cowplot::get_plot_component(p_legend, "guide-box", return_all = TRUE)[[1]]
 # Insert legend into next open slot in list
 dist_plots[[length(dist_plots) + 1]] <- legend
 # Test
@@ -367,7 +372,7 @@ Remove_change <- read_csv("Derived/Excels/Spp_remove_change.csv") %>%
 
 # Add department information for each bird observation
 Bird_pcs_all2 <- Bird_pcs_all %>%
-  left_join(Site_covs[, c("Id_muestreo_no_dc", "Departamento", "Elev")])
+  left_join(Site_covs[, c("Id_survey_no_dc", "Department", "Elev")])
 
 # Separate 1) remove vs change and 2) department-specific vs global
 Remove_dept <- Remove_change %>% 
@@ -381,14 +386,14 @@ Change_all <- Remove_change %>%
 
 # Around Santa Marta area Henicorhina leucophrys > 600m are OK 
 row_add <- Bird_pcs_all2 %>%
-  filter(Species_ayerbe == "Henicorhina leucophrys" & Departamento == "Guajira" & Elev > 600)
+  filter(Species_ayerbe == "Henicorhina leucophrys" & Department == "Guajira" & Elev > 600)
 
 # Apply removes first (anti_join)
 Bird_pcs_all3 <- Bird_pcs_all2 %>% 
   anti_join(
     Remove_dept, 
     by = c("Species_ayerbe", 
-           "Departamento" = "Departamentos_afectados")
+           "Department" = "Departamentos_afectados")
   ) %>% anti_join(Remove_all) %>% 
   # Add back in single Henicorhina leucophrys observation
   bind_rows(row_add) %>% 
@@ -408,7 +413,7 @@ Bird_pcs_all4 <- Bird_pcs_all3 %>%
   left_join(
     Change_dept, 
     by = c("Species_ayerbe", 
-           "Departamento" = "Departamentos_afectados")
+           "Department" = "Departamentos_afectados")
   ) %>% implement_changes() %>% 
   # Remove columns before next join
   select(-c(Species_cambiado, Recomendacion)) %>%
@@ -436,13 +441,13 @@ Bird_pcs_all %>% filter(Species_ayerbe == "Myiarchus ferox") # Originally 12
 Bird_pcs_all4 %>% filter(Species_ayerbe == "Myiarchus ferox") # Final of 31
 # 19 apicalis changed -> ferox in Meta; 4 removed in Guajira
 Bird_pcs_all2 %>% filter(Species_ayerbe == "Myiarchus apicalis") %>% 
-  tabyl(Departamento)
+  tabyl(Department)
 Bird_pcs_all4 %>% filter(Species_ayerbe == "Myiarchus apicalis") %>% 
-  tabyl(Departamento) # In correct departments
+  tabyl(Department) # In correct departments
 
 # Export ------------------------------------------------------------------
 Bird_pcs_export <- Bird_pcs_all4 %>%
-  select(-c(Species_cambiado, Recomendacion, contains("Departamento")))
+  select(-c(Species_cambiado, Recomendacion, contains(c("Department", "Departamentos_afectados"))))
 # Export bird point counts taking into account their distributions
 Bird_pcs_export %>% write_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv")
 
@@ -452,7 +457,8 @@ Bird_pcs_export %>% write_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv")
 # >Examine GAICA Fuera Rango ------------------------------------------------
 # Bring in Robert & Yuri's recommendations for Species outside of known distribution
 FR_Rev_RY <- read_xlsx("../FueraRango/Excels/GAICA/FueraRangoGAICA7.20.23_RevR&Y.xlsx", sheet = "FueraRango") %>%
-  rename(Observaciones_adicionales = `Observaciones adicionales`)
+  rename(Observaciones_adicionales = `Observaciones adicionales`,
+         Institution_name = Nombre_institucion)   # external review file has the old Spanish header
 
 # First, determine if there are any species that occurred in multiple data bases, & whether R&Ys recommendations changed in any cases
 Ayerb_mult <- FR_Rev_RY %>%
@@ -477,8 +483,8 @@ FR_Rev_RY2 <- FR_Rev_RY %>%
 
 # Merge with FueraRango so the GAICA suggestions are now incorporated in same df with CIPAV rows
 Fuera.rango.RYrecs <- FR_Rev_RY2 %>%
-  select(Species_ayerbe, Nombre_institucion, Nombre_Cambiado, 15:19) %>%
-  right_join(FueraRango, by = c("Species_ayerbe", "Nombre_institucion"))
+  select(Species_ayerbe, Institution_name, Nombre_Cambiado, 15:19) %>%
+  right_join(FueraRango, by = c("Species_ayerbe", "Institution_name"))
 
 # Take a single common name per Species Ayerbe.. This doesn't need to be perfect as this is just to help find these species in the book
 Com.names <- Tax_df3 %>%

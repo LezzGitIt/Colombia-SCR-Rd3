@@ -10,8 +10,11 @@ library(conflicted)
 conflicts_prefer(dplyr::select)
 conflicts_prefer(dplyr::filter)
 
-# guess_max = Inf: Grabacion is sparse (only ~180 non-NA, near the end) so the default type guess misreads it as logical and drops the values
-Bird_pcs_dist <- read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf)
+# guess_max = Inf: Recording is sparse (only ~180 non-NA, near the end) so the default type guess misreads it as logical and drops the values
+# any_of rename: Anglicise if 04 hasn't yet rewritten this file with English headers (2026 rename)
+Bird_pcs_dist <- read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf) %>%
+  rename(any_of(c(Id_survey = "Id_muestreo", Id_survey_no_dc = "Id_muestreo_no_dc", Date = "Fecha",
+                  Distance_bird = "Distancia_bird", Obs_type = "Tipo_registro", Recording = "Grabacion")))
 Taxonomy <- read_csv(file = "Derived/Excels/Taxonomy/Taxonomy.csv")
 
 # General formatting ---------------------------------------------------------
@@ -24,48 +27,48 @@ Bird_pcs_analysis1 <- Bird_pcs_dist %>%
 # Remove recordings ---------------------------------------------------------
 # Given the inconsistent effort, remove birds that were only identified in recording
 Bird_pcs_analysis2 <- Bird_pcs_analysis1 %>% 
-  filter(is.na(Grabacion) | Grabacion == "Cf")
+  filter(is.na(Recording) | Recording == "Cf")
 
 # Remove flyovers ---------------------------------------------------------
 # NOTE: CIPAV did not record information on flyovers (sobrevuelos). Thus we cannot exclude the possibility that a species flew over the observer and was included in the data set, despite NOT using the habitat. 
 Bird_pcs_analysis3 <- Bird_pcs_analysis2 %>% 
-  filter(is.na(Tipo_registro) | Tipo_registro != "Sobrevuelo")
+  filter(is.na(Obs_type) | Obs_type != "Sobrevuelo")
 
 # Remove distances > 50m --------------------------------------------------
 # NOTE:: there are a few rows that have NAs for distance as data collector forgot to enter a distance in the field 
 Bird_pcs_analysis3 %>% 
-  filter(is.na(Distancia_bird)) 
+  filter(is.na(Distance_bird)) 
 
 # However, there are a few species (e.g. hummingbirds, manakins) that would be nearly impossible to identify at >50m. Change the distance of these species to <50m so that they are maintained
 Fam_join <- Taxonomy %>% 
   distinct(Species_ayerbe, Family)
 Bird_pcs_analysis3 %>%
   left_join(Fam_join) %>%
-  filter(is.na(Distancia_bird)) %>% 
+  filter(is.na(Distance_bird)) %>% 
   distinct(Family, Species_ayerbe) #%>% view()
 Bird_pcs_analysis4 <- Bird_pcs_analysis3 %>% 
   left_join(Fam_join) %>%
-  mutate(Distancia_bird = if_else(is.na(Distancia_bird) & Family %in% c("Trochilidae", "Pipridae"), "<50", Distancia_bird))
+  mutate(Distance_bird = if_else(is.na(Distance_bird) & Family %in% c("Trochilidae", "Pipridae"), "<50", Distance_bird))
 
 # Make distances numeric
 Bird_pcs_analysis5 <- Bird_pcs_analysis4 %>%
-  mutate(Distancia_bird = case_when(
-    Distancia_bird == "0-15" ~ "15",
-    Distancia_bird == "15-30" ~ "30",
-    Distancia_bird == "30-50" ~ "50",
-    Distancia_bird == "< 25" ~ "25",
-    Distancia_bird == "<50" ~ "50",
-    Distancia_bird == ">50" ~ "51",
-    Distancia_bird == "> 50" ~ "51",
-    .default = Distancia_bird
+  mutate(Distance_bird = case_when(
+    Distance_bird == "0-15" ~ "15",
+    Distance_bird == "15-30" ~ "30",
+    Distance_bird == "30-50" ~ "50",
+    Distance_bird == "< 25" ~ "25",
+    Distance_bird == "<50" ~ "50",
+    Distance_bird == ">50" ~ "51",
+    Distance_bird == "> 50" ~ "51",
+    .default = Distance_bird
   )) %>%
-  mutate(Distancia_bird = as.numeric(Distancia_bird))
+  mutate(Distance_bird = as.numeric(Distance_bird))
 
 # Remove records with distance unknown or > 50m
 Bird_pcs_analysis6 <- Bird_pcs_analysis5 %>% 
-  filter(Distancia_bird < 51) %>% 
+  filter(Distance_bird < 51) %>% 
   # select only the columns necessary
-  select(-c(Grabacion, Family, Distancia_bird, Tipo_registro))
+  select(-c(Recording, Family, Distance_bird, Obs_type))
 
 # Sum counts --------------------------------------------------------------
 # Summarize so each species is listed only once in each point count 
@@ -73,8 +76,8 @@ Bird_pcs_analysis6 %>% filter(if_any(everything(), is.na)) # No NAs in any rows
 Bird_pcs_analysis7 <- Bird_pcs_analysis6 %>% 
   summarize(Count = sum(Count), .by = -Count)
 
-Bird_pcs_analysis6 %>% filter(Fecha > "2025-12-22") %>% 
-  count(Id_muestreo, Fecha, Species_ayerbe, sort = T )
+Bird_pcs_analysis6 %>% filter(Date > "2025-12-22") %>% 
+  count(Id_survey, Date, Species_ayerbe, sort = T )
 
 # Reduce impact of outliers ---------------------------------------------
 # Lessen the magnitude of 4 outliers with counts > 50 individuals

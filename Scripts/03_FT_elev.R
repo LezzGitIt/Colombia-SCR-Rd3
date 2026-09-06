@@ -336,21 +336,25 @@ source_choice %>% tabyl(chosen_range)
 source_choice %>% filter(min_diff > 500) %>% 
   arrange(min_diff)
 
-#KEY - 'We looked for concordance between 2 Colombia-specific elevational range sources, and prioritized sources in the following order: Ayerbe-Quiñones (2018), Hilty (2021), QJ (variable)'
+### Elev_range_final -- the niche-breadth trait -- takes one source per species, not the best-agreeing pair, so the range is internally consistent.
+### Ayerbe-Quinones (2018) is the Colombia field guide and covers 586 / 587 species; Hilty (2021), then Quintero & Jetz (2018), then eBird/Freeman (2022) only fill the gaps. Source_elev records which source each value came from.
+### The concordance pick (chosen_range, from source_choice above) is kept alongside in Elev_ranges_all_sources.csv for comparison, but no longer feeds the trait.
+### The broadest-range columns (Min_elev_comb / Max_elev_comb / Source_comb_elev) are untouched -- 04_Out_range.R uses them for the lenient observed-vs-expected elevation screen, where a wide range is deliberate.
 Elev_final <- Elev_ranges %>%
   left_join(source_choice %>% select(Species_ayerbe, chosen_range),
             by = "Species_ayerbe") %>%
   mutate(
-    Elev_range_final = case_when(
-      chosen_range == "Hilty" ~ Elev_range_Hilty,
-      chosen_range == "QJ"    ~ Elev_range_QJ,
-      chosen_range == "Ayerbe"   ~ Elev_range_ayerbe,
-      chosen_range == "eB"    ~ Elev_range_eB,
-      TRUE ~ NA_real_
+    Elev_range_final = coalesce(Elev_range_ayerbe, Elev_range_Hilty, Elev_range_QJ, Elev_range_eB),
+    Source_elev = case_when(
+      !is.na(Elev_range_ayerbe) ~ "Ayerbe",
+      !is.na(Elev_range_Hilty)  ~ "Hilty",
+      !is.na(Elev_range_QJ)     ~ "QJ",
+      !is.na(Elev_range_eB)     ~ "eB",
+      .default = NA_character_
     )
   )
 
-Elev_final %>% select(Species_ayerbe, Elev_range_final, chosen_range)
+Elev_final %>% select(Species_ayerbe, Elev_range_final, Source_elev, chosen_range)
 
 # >Understand elevational ranges-----------------------------------------
 # Several checks to better understand the elevational range data
@@ -761,8 +765,8 @@ Eye_size_tbl5 <- Eye_size_tbl4 %>%
 # Merge with functional traits database
 Ft_final <- Ft_df4 %>%
   full_join(
-    Elev_final[,c("Species_ayerbe", "Elev_range_final", "Source_comb_elev")]
-  ) %>% 
+    Elev_final[,c("Species_ayerbe", "Elev_range_final")]
+  ) %>%
   full_join(
     Eye_size_tbl5[,c("Species_sacc_18", "Eye_resid", "Source_eye")],
     by = join_by("Species_ayerbe" == "Species_sacc_18")
@@ -783,10 +787,24 @@ stop()
 Ft_final %>% Na_rows_cols()
 
 # Export functional traits file as csv
-# Dropped from the data-paper deposit (kept for Chapter 1, where the derivations get motivated): Clutch (BirdLife -- redundant with the BIRDBASE clutch_*, r = 0.93), Eye_resid/Source_eye, and the Sheard-derived nest traits (Nest_ground_bush, N_nest_locs, Nest_exposure).
+# Column order + capitalisation are the deposit contract -- they match the 'Functional_traits' sheet of DataS1/Column_definitions_final.xlsx exactly. Edit both together.
+# Elev_range is single-source (Ayerbe-Quinones 2018) -- more defensible than coalescing several sources, so no Source_elev column is deposited.
+# Not deposited (kept for Chapter 1, where the derivations get motivated): BirdLife Clutch (redundant with the BIRDBASE clutch, r = 0.93), Eye_resid / Source_eye, and the Sheard-derived nest traits.
 Ft_final %>%
-  select(-any_of(c("Clutch", "Eye_resid", "Source_eye", "Nest_ground_bush", "N_nest_locs", "Nest_exposure"))) %>%
-  rename_with(.cols = everything(), .fn = ~str_remove(., "_comb")) %>%
+  select(
+    Species_ayerbe, Species_bl,
+    Total.individuals, Complete.measures,
+    Beak.Length_Culmen, Beak.Length_Nares, Beak.Width, Beak.Depth,
+    Tarsus.Length, Wing.Length, Kipps.Distance, Secondary, `Hand-Wing.Index`, Tail.Length, Mass,
+    Habitat, Habitat.Density, Trophic.Level, Trophic.Niche, Primary.Lifestyle,
+    Min.Latitude, Max.Latitude, Centroid.Latitude, Centroid.Longitude, Range.Size,
+    Forest_bin, Migration_avo, Migration_bb,
+    Primary_diet = primary_diet, Diet_breadth, Habitat_breadth, Ecological_specialization,
+    Clutch_min = clutch_min, Clutch_max = clutch_max, Clutch_mean = clutch_mean,
+    Gen_length = gen_length,
+    Elev_range = Elev_range_final,
+    Iucn_red_list = iucn_red_list
+  ) %>%
   write_csv(file = "Derived/Excels/Traits/Functional_traits.csv")
 
 # Export full elevation file as csv 

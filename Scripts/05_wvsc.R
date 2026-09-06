@@ -31,6 +31,8 @@ library(tidyverse)
 library(janitor)
 library(terra)
 library(tidyterra)
+library(sf)
+library(exactextractr)
 library(conflicted)
 library(cowplot)
 ggplot2::theme_set(theme_cowplot())
@@ -41,6 +43,11 @@ source("/Users/aaronskinner/Library/CloudStorage/OneDrive-UBC/Academia/Rcookbook
 ## Load data
 Event_covs_pcs <- read_csv("Derived/Excels/Event_covs_pcs.csv")
 Pc_locs <- vect("Derived/Geospatial/shp/Pc_locs.gpkg")
+
+# Pc_locs must carry one geometry per point -- a duplicated Id_survey_no_dc (e.g. a stale .gpkg from a run predating the El Hatico Ref_NA fix) makes the canopy joins below go many-to-many. Regenerate the .gpkg from 01 if this trips.
+if (anyDuplicated(Pc_locs$Id_survey_no_dc)) {
+  stop("Pc_locs.gpkg has duplicate Id_survey_no_dc -- regenerate it from 01_Gen_wrangling.R")
+}
 
 # Load in Woody vegetation structure and change (WVSC) file 
 Years <- c("2013", "2014", "2016", "2017", "2019", "2022", "2024")
@@ -100,15 +107,24 @@ ggplot() +
   geom_spatvector(data = Ex_pts, color = "red", size = 1) 
 
 # Extract
-Cover_tbl <- imap(Cover_mask_l, \(mask_r, year){
-  print(year)
-  terra::extract(mask_r, Locs_1k, fun = mean, ID = FALSE) %>% # touches = TRUE,
-    tibble() %>% 
-    mutate(Id_muestreo_no_dc = Locs_1k$Id_muestreo_no_dc,
-           Ano = as.numeric(year), 
-           Scale_m = 1000) %>%
-    rename(Canopy_cover = paste0("Colombia_WVCC_", year))
-}) %>% list_rbind()
+# exact_extract (C++) replaces a per-year terra::extract loop that ran ~15 min over the 1km buffers -- this is seconds. Keeping only cells at least half inside the buffer (coverage_fraction >= 0.5) reproduces terra's centroid rule, so the values match the previous extraction (height exactly; cover to within 0.04 of a percentage point).
+extract_buffers <- function(raster_l, polys, summary_fn) {
+  polys_sf <- sf::st_as_sf(polys)
+  imap(raster_l, \(r, year) {
+    tibble(
+      Id_survey_no_dc = polys$Id_survey_no_dc,
+      Year = as.numeric(year),
+      Value = exact_extract(r, polys_sf, progress = FALSE, fun = \(vals, cov_frac) {
+        inside <- cov_frac >= 0.5
+        if (any(inside)) summary_fn(vals[inside]) else summary_fn(vals)
+      })
+    )
+  }) %>% list_rbind()
+}
+
+Cover_tbl <- extract_buffers(Cover_mask_l, Locs_1k, \(x) mean(x, na.rm = TRUE)) %>%
+  mutate(Canopy_cover = Value, Scale_m = 1000) %>%
+  select(-Value)
 
 # >Height ------------------------------------------------------------------
 # Buffer of 50m to extract the max canopy height of the point count 
@@ -138,29 +154,18 @@ Ex_mask <- mask(Ex_crop, Ex_buff_50m)
 ggplot() + geom_spatraster(data = Ex_mask)
 
 # Extract max height within 50m
-Height_tbl <- imap(Height_mask_l, \(mask_r, year){
-  print(year)
-  terra::extract(mask_r, Locs_50m, fun = max, ID = FALSE) %>% # touches = TRUE,
-    tibble() %>% 
-    mutate(Id_muestreo_no_dc = Locs_50m$Id_muestreo_no_dc,
-           Ano = as.numeric(year)) %>%
-           #Scale_m = 50 %>%
-    rename(Canopy_height_dm = paste0("Colombia_WVCH_", year))
-}) %>% list_rbind() 
-  
-# Convert from decimeters to meters
-Height_tbl2 <- Height_tbl %>% 
-  mutate(Canopy_height_m = Canopy_height_dm / 10, 
-         Ano = as.numeric(Ano)) %>% 
-  select(-c(Canopy_height_dm))
+Height_tbl2 <- extract_buffers(Height_mask_l, Locs_50m, \(x) max(x, na.rm = TRUE)) %>%
+  # Convert from decimeters to meters
+  mutate(Canopy_height_m = Value / 10) %>%
+  select(-Value)
 
 ## Join
-# WSVC data only goes through 2024, so 2025/2026 surveys are matched to the 2024 canopy layer -- via a temporary join year so the real Ano column is never overwritten (an earlier version reset every Recent_pts row to 2025, which also clobbered the other-year visits that share an Id_muestreo)
+# WSVC data only goes through 2024, so 2025/2026 surveys are matched to the 2024 canopy layer -- via a temporary join year so the real Year column is never overwritten (an earlier version reset every Recent_pts row to 2025, which also clobbered the other-year visits that share an Id_survey)
 Event_covs <- Event_covs_pcs %>%
-  mutate(Ano_wvsc = ifelse(Ano %in% c(2025, 2026), 2024, Ano)) %>%
-  left_join(Cover_tbl,   by = c("Id_muestreo_no_dc", "Ano_wvsc" = "Ano")) %>%
-  left_join(Height_tbl2, by = c("Id_muestreo_no_dc", "Ano_wvsc" = "Ano")) %>%
-  select(-any_of(c("Ano_wvsc", "Scale_m")))
+  mutate(Year_wvsc = ifelse(Year %in% c(2025, 2026), 2024, Year)) %>%
+  left_join(Cover_tbl,   by = c("Id_survey_no_dc", "Year_wvsc" = "Year")) %>%
+  left_join(Height_tbl2, by = c("Id_survey_no_dc", "Year_wvsc" = "Year")) %>%
+  select(-any_of(c("Year_wvsc", "Scale_m")))
 
 Event_covs %>% filter(is.na(Canopy_height_m) | is.na(Canopy_cover))
 
@@ -175,8 +180,8 @@ Event_covs %>% ggplot() +
 # >Check ------------------------------------------------------------------
 Event_covs %>%
   Na_rows_cols(
-    id_cols = Id_muestreo,
-    cols_inc = -c(Registrado_por, Noise, Clima, Cows_50m)
+    id_cols = Id_survey,
+    cols_inc = -c(Registered_by, Noise, Weather, Cows_50m)
   )
 
 # Export ------------------------------------------------------------------

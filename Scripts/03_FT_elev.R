@@ -793,7 +793,7 @@ Ft_final %>% Na_rows_cols()
 Ft_final %>%
   select(
     Species_ayerbe, Species_bl,
-    Total.individuals, Complete.measures,
+    Total.individuals,
     Beak.Length_Culmen, Beak.Length_Nares, Beak.Width, Beak.Depth,
     Tarsus.Length, Wing.Length, Kipps.Distance, Secondary, `Hand-Wing.Index`, Tail.Length, Mass,
     Habitat, Habitat.Density, Trophic.Level, Trophic.Niche, Primary.Lifestyle,

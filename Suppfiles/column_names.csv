@@ -11,7 +11,6 @@ Centroid.Longitude,Centroid.Longitude,,Functional_traits
 Clutch_max,Clutch_max,,Functional_traits
 Clutch_mean,Clutch_mean,,Functional_traits
 Clutch_min,Clutch_min,,Functional_traits
-Complete.measures,Complete.measures,,Functional_traits
 Count,Count,,Bird_pcs_all; Bird_pcs_analysis
 Cows_50m,Cows_50m,,Event_covs
 Date,Date,Fecha,Bird_pcs_all; Bird_pcs_analysis; Event_covs
@@ -67,7 +66,6 @@ Rep_year_grp,Rep_year_grp,,Event_covs
 Sampling_day,Sampling_day,,Event_covs
 Season,Season,,Event_covs
 Secondary,Secondary,,Functional_traits
-Source_elev,Source_elev,,Functional_traits
 Species_avilist_25,Species_avilist_25,,Taxonomy
 Species_ayerbe,Species_ayerbe,,Bird_pcs_all; Bird_pcs_analysis; Functional_traits; Taxonomy
 Species_bl,Species_bl,,Functional_traits; Taxonomy

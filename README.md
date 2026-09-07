@@ -84,7 +84,7 @@ Output (`Data_paper_ecology.pdf` and `.docx`) lands next to the qmd in `Scripts/
 ## Repository layout
 
 ```
-Scripts/        01–08 pipeline; Data_paper/ (figure + example scripts); qmd/ (manuscript);
+Scripts/        01–06 pipeline; Data_paper/ (figure + example scripts); qmd/ (manuscript);
                 _ch1_pending/ (staged for Ch1-ssp-birds)
 DataS1/         curated deposit (tracked)
 Suppfiles/      bibliography, author/affiliation metadata, title-page partial

@@ -65,14 +65,14 @@ the `@fig-phylogeny` plot + `Tax_summary.csv`.
 ## Reproducing the manuscript
 
 Requires a populated `Derived/` (run the pipeline first), the Elsevier Quarto
-extension, and `lualatex`.
+extension, and `xelatex`.
 
 ```r
 # 1. Install the journal format (once per machine; it lands in _extensions/, which is gitignored)
 #    quarto add quarto-journals/elsevier
 
-# 2. Build the figures + metadata the manuscript embeds
-source("Scripts/Data_paper/Figs.R")
+# 2. Build the figures + the Tables 6-9 column metadata the manuscript embeds
+source("Scripts/Data_paper/Figs_tables.R")
 source("Scripts/Data_paper/Phylogeny_fig.R")
 
 # 3. Render

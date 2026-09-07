@@ -1,4 +1,4 @@
-## Data paper Ecology figures ## 
+# Builds the data-paper figures for Figures/ and the Tables 6-9 column metadata (Rdata/Cols_metadata_l.rds) that the manuscript embeds; source this before rendering the qmd.
 
 # Load libraries -------------------------------------------------
 # Libraries

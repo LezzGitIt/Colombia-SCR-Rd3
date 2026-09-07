@@ -675,18 +675,46 @@ Print_tbl <- function(df, join_df = NULL, remove_field = NULL, drop_datatype = F
 
   df <- df %>% relocate(Definition, .after = Field_name) %>%
     relocate(any_of("Source"), .after = Definition)   # only the Functional_traits sheet carries a Source column
+
+  escape_latex <- TRUE
+
   if(drop_datatype) df <- df %>% select(-any_of("Data_type"))
+
+  if(drop_datatype && knitr::is_latex_output()){
+    # Narrow columns hold values with unbreakable runs (Long_distance, HBW/BirdLife,
+    # Beak.Length_Culmen). Escape LaTeX specials ourselves, then allow a line break
+    # after every "." "_" "/" so those cells wrap instead of overflowing.
+    tex_esc <- function(x){
+      x <- gsub("\\\\", "\\\\textbackslash{}", x)
+      x <- gsub("([#$%&_{}])", "\\\\\\1", x)
+      x <- gsub("~", "\\\\textasciitilde{}", x)
+      x <- gsub("\\^", "\\\\textasciicircum{}", x)
+      x <- gsub("\\\\textasciicircum\\{\\}([0-9]+)", "\\\\textsuperscript{\\1}", x)   # km^2 -> km with superscript 2
+      x
+    }
+    break_all <- function(x) gsub("(\\\\_|[./])", "\\1\\\\allowbreak{}", x)   # Field name / Source: break after "." "_" "/"
+    break_us  <- function(x) gsub("(\\\\_)", "\\1\\\\allowbreak{}", x)         # ranges: only after "_" (keep numbers intact)
+    df <- df %>%
+      mutate(across(everything(), tex_esc)) %>%
+      mutate(across(any_of(c("Field_name", "Source")), break_all)) %>%
+      mutate(across(any_of(c("Low_range", "High_range")), break_us))
+    escape_latex <- FALSE
+  }
 
   out <- df %>%
     rename_with(.fn = ~str_replace(., "_", " ")) %>%
-    kable("latex", booktabs = TRUE, longtable = TRUE, escape = TRUE) %>%
+    kable("latex", booktabs = TRUE, longtable = TRUE, escape = escape_latex) %>%
     kable_styling(latex_options = c("striped", "hold_position"), position = "center") %>%
-    column_spec(2, width = if (drop_datatype) "4cm" else "5cm")
+    column_spec(2, width = if (drop_datatype) "5.7cm" else "5cm")
   if(drop_datatype){
-    # the last two columns are always Low/High range; a Source column (when the sheet has one) sits between Definition and them
+    # Functional_traits table: hand-tuned widths so Definition gets the room. Field
+    # name, Source, and the two range columns hold short values, so keep them tight.
+    # The last two columns are always Low/High range; Source (when present) sits
+    # between Definition and them.
     n <- ncol(df)
-    if("Source" %in% names(df)) out <- out %>% column_spec(3, width = "1.9cm")
-    out <- out %>% column_spec(n - 1, width = "2.5cm") %>% column_spec(n, width = "2.5cm")
+    out <- out %>% column_spec(1, width = "3.2cm")
+    if("Source" %in% names(df)) out <- out %>% column_spec(3, width = "1.6cm")
+    out <- out %>% column_spec(n - 1, width = "1.7cm") %>% column_spec(n, width = "1.7cm")
   }
   out
 }

@@ -546,12 +546,16 @@ p2 <- Species_summary %>%
         axis.title.y.left = element_blank())
 
 # Combine plots side by side and use a common legend
-(p1 + p2) + 
-  plot_layout(guides = "collect") & 
-  theme(legend.position = "top")
+# The 5-ecoregion legend is wrapped to two rows so it fits the narrower portrait width.
+Species_counts_p <- (p1 + p2) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "top") &
+  guides(fill = guide_legend(nrow = 2))
 
-ggsave("Figures/Species_counts_localities.png",
-       bg = "white", width = 15, height = 10)
+# Portrait aspect: 30 species per panel need vertical room, and this keeps the figure filling the page it occupies rather than floating alone with wide blank margins.
+ggsave("Figures/Species_counts_localities.png", Species_counts_p,
+       bg = "white", width = 9, height = 11)
+print(Species_counts_p)
 
 # Supplementary figs ------------------------------------------------------
 ## Plot showing numer of point counts per farm, the number of farms each data collector surveyed, and the average number of times each point count was repeated within a season (< 80 days)
@@ -585,14 +589,14 @@ label_data <- Farm_counts %>%
   left_join(x_loc)
 
 # Plot
-Num_pcs_farm_db %>% 
+Pc_per_farm_db_p <- Num_pcs_farm_db %>%
   full_join(Db_summ) %>%
-  ggplot(aes(x = n, y = Uniq_db, color = Mean_rep_season)) + 
-  geom_boxplot(outliers = FALSE) + 
-  geom_jitter(alpha = .4, width = 0.01) + 
-  labs(x = "Point counts per farm", 
+  ggplot(aes(x = n, y = Uniq_db, color = Mean_rep_season)) +
+  geom_boxplot(outliers = FALSE) +
+  geom_jitter(alpha = .4, width = 0.01) +
+  labs(x = "Point counts per farm",
        y = "Data set",
-       color = "Repeat surveys \nper point count") + 
+       color = "Repeat surveys \nper point count") +
   theme(legend.position = "top") +
   geom_text(
     data = label_data,
@@ -601,10 +605,12 @@ Num_pcs_farm_db %>%
         label = paste("N =", N_farms)),
     inherit.aes = FALSE,
     hjust = 0
-  ) 
+  )
 #quants <- quantile(Pc_per_farm$n, probs = c(0, .1, .9, 1))
 
-ggsave("Figures/Pc_per_farm_db.png", bg = "white")
+# Six boxplot rows: save wide and short so the figure sits inline rather than floating onto its own page.
+ggsave("Figures/Pc_per_farm_db.png", Pc_per_farm_db_p, bg = "white", width = 9, height = 5)
+print(Pc_per_farm_db_p)
 
 # Data sets ---------------------------------------------------------------
 # >Metadata tbls -----------------------------------------------------------

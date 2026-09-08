@@ -339,7 +339,7 @@ source_choice %>% filter(min_diff > 500) %>%
 ### Elev_range_final -- the niche-breadth trait -- takes one source per species, not the best-agreeing pair, so the range is internally consistent.
 ### Ayerbe-Quinones (2018) is the Colombia field guide and covers 586 / 587 species; Hilty (2021), then Quintero & Jetz (2018), then eBird/Freeman (2022) only fill the gaps. Source_elev records which source each value came from.
 ### The concordance pick (chosen_range, from source_choice above) is kept alongside in Elev_ranges_all_sources.csv for comparison, but no longer feeds the trait.
-### The broadest-range columns (Min_elev_comb / Max_elev_comb / Source_comb_elev) are untouched -- 04_Out_range.R uses them for the lenient observed-vs-expected elevation screen, where a wide range is deliberate.
+### The broadest-range columns (Min_elev_comb / Max_elev_comb / Source_comb_elev) are untouched -- 04a_Range_screening.R uses them for the lenient observed-vs-expected elevation screen, where a wide range is deliberate.
 Elev_final <- Elev_ranges %>%
   left_join(source_choice %>% select(Species_ayerbe, chosen_range),
             by = "Species_ayerbe") %>%

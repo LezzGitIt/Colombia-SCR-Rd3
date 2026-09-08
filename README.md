@@ -52,7 +52,8 @@ order, inputs, and outputs.
 | `01_Gen_wrangling.R` | base point-count df, site/event covariates, point locations, climate |
 | `02_Taxonomy.R` | `Taxonomy.csv`, taxonomy-standardized observations |
 | `03_FT_elev.R` | `Functional_traits.csv`, elevational ranges |
-| `04_Out_range.R` | `Bird_pcs_dist.csv` (range screening) |
+| `04a_Range_screening.R` | elevational + distributional range screening → review Excels + PDF maps (heavy geospatial; run only to refresh the review) |
+| `04b_Range_apply.R` | applies the curated remove/change list → `Bird_pcs_dist.csv` (runs every pass) |
 | `05_wvsc.R` | woody-vegetation canopy cover + height, added to `Event_covs.csv` |
 | `06_Analysis_wrangling.R` | `Bird_pcs_analysis.csv` |
 

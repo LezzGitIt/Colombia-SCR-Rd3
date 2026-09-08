@@ -537,15 +537,15 @@ Status of data quality assurance checking
 
 \[ECOTROPICO\] - In collaboration with the data collectors, AAS, AH, and JH took extensive quality-control checks. Primarily, this consisted of cross-checking data collected in the field against the stated methodologies from each data set (see 'Birds_SSP_Colombia_Detailed_methodologies' file). For example, we confirmed the empirical sampling dates and times against the reported point count schedules. Additional quality assurance procedures included:
 
-- Taxonomy - Species names were compared against Ayerbe’s *Guide to the birds of Colombia* [@ayerbe2018guia].
-
-- Distributions - Species observations were compared against distributional ranges [@velezDistributionBirdsColombia2021; @suarez-castroIntegratingMultipleData2024] and elevational ranges [@quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021].
+- Taxonomy - Species names were standardized using Ayerbe’s *Guide to the birds of Colombia* [@ayerbe2018guia] (see 'Tax_transcrip_changes.csv').
 
 - Geospatial - Point count coordinates were verified to ensure that 1) the coordinates aligned with the reported department, 2) the proximity of point counts within an `Id_group` was reasonable (\< 2 km), and that 3) minimum point count spacing was consistent with that specified in the methodology.
 
 - Habitat verification - Descriptive habitat types were standardized and cross-referenced with Google Earth imagery to confirm correspondence; discrepancies within \<50 m were considered acceptable given potential GPS error \[To do - Indicate inconsistencies in the Excel somehow\]
 
-With the help of data collectors, AAS standardized the taxonomy according to the AOS–SACC (see 'Taxonomy.csv'). The location of species observed during point counts were then compared to species distribution shapefiles that contained 1890 species (\~97% of species in Colombia) to identify potential erroneous misidentifications [@velezDistributionBirdsColombia2021; @suarez-castroIntegratingMultipleData2024]. Given the strong influence that topography has on species distributions in Colombia, we also compared species' observed elevations to elevational ranges reported in [@ayerbe2018guia; @quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021]. All species observed outside of the species distributional range, or at an elevation \>150 meters above or below the elevational range found in the literature, were sent to the original data collector for review. Data collectors made recommendations for each species in question, falling into three categories: 1) the species identification and spatial information was correct (suggesting a range expansion), 2) the species was misidentified or wrongly transcribed and should be changed to a different species, or 3) if uncertain, the species should be removed from the database.
+- Distributions - Species observations were compared against distributional ranges [@velezDistributionBirdsColombia2021] and elevational ranges [@quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021; @ayerbe2018guia].
+
+The location of species observed during point counts were then compared to species distribution shapefiles that contained 1890 species (\~97% of species in Colombia) to identify potential erroneous misidentifications [@velezDistributionBirdsColombia2021; @suarez-castroIntegratingMultipleData2024]. Given the strong influence that topography has on species distributions in Colombia, we also compared species' observed elevations to elevational ranges reported in [@ayerbe2018guia; @quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021]. All species observed outside of the species distributional range, or at an elevation \>150 meters above or below the elevational range found in the literature, were sent to the original data collector for review. Data collectors made recommendations for each species in question, falling into three categories: 1) the species identification and spatial information was correct (suggesting a range expansion), 2) the species was misidentified or wrongly transcribed and should be changed to a different species, or 3) if uncertain, the species should be removed from the database (applied by `04b_Range_apply.R`).
 
 CMK - NOTE:: CIPAV never did this exercise, and GAICA did not finish despite it being in their most recent 2024 contract (which TNC paid for). GAICA is no longer responding to my emails.
 
@@ -809,7 +809,7 @@ Description or examples of data forms, automated data loggers, digitizing proced
 
 Identification and treatment of outliers, description of quality assessments, calibration of reference standards, equipment performance results, etc.
 
-No data were altered or omitted to address outliers in `Bird_pcs_all.csv`, but there are some observations with high abundances (e.g., 4 records with \>50 individuals) that could bias analyses if not addressed. In `Bird_pcs_analysis.csv` these 4 records are removed (see X R script for more details).
+No data were altered or omitted to address outliers in `Bird_pcs_all.csv`, but there are some observations with high abundances (e.g., 4 records with \>50 individuals) that could bias analyses if not addressed. In `Bird_pcs_analysis.csv` these 4 records are removed (see `06_Analysis_wrangling.R` script for more details).
 
 ## C. Related materials:
 

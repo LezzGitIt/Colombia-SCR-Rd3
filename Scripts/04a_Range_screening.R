@@ -1,17 +1,20 @@
-## PhD birds in silvopastoral landscapes##
-# Data exploration 01 -- Species distributions & observations outside of range
+## PhD birds in silvopastoral landscapes ##
+## Data wrangling 04a -- Screen observations against their elevational and distributional ranges
+
+## Heavy geospatial review step: flags out-of-range observations, builds the Excels and PDF maps that inform the manual remove/change list (Spp_remove_change.csv). Run it only when the screening needs refreshing -- 04b_Range_apply.R applies the curated list every pipeline pass.
+## Map either stage by toggling Bird_df below: Bird_pcs_all (before adjustment) or Bird_pcs_dist (after 04b applied the removals).
 
 # Contents
 # 1) Elev out of range -- Compare each species observation to its elevational range, creating categorical 'Out' column and the continuous 'Amount_out_m' column
 # 2) Distribution out of range -- Compare each species observation to its distributional range (shapefile) using a for loop
 # 3) Fuera rango files -- Generate Excel files to help review the species out of range (for collaborators) based on results of steps 1 & 2
-# 4) Distribution maps -- Plot species observations along with species range map (Ayerbe, 2018) on background elevation of Colombia map  
+# 4) Distribution maps -- Plot species observations along with species range map (Ayerbe, 2018) on background elevation of Colombia map
 
-### Notes: 
+### Notes:
 ## Certain species were actually in the original Ayerbe files but named differently.. I updated these manually. I never received clarification why some of these have "_M" or "_1" at the end of the file names.
 # "Accipiter bicolor" (didn't have all files), "Crypturellus soui_1", "Parkesia noveboracensis_M" Picumnus olivaceus_M",  "Scytalopus latrans_M", "Nyctibius_grandis", "Machaeropterus regulus" -> "Machaeropterus striolatus"
 
-## NOTES:: I have made two versions of this script: 01a_Spp_dist_comb & 01b_Spp_dist_sep. This script (01a_Spp_dist_comb) produces combined outputs from all data collectors (e.g., for me to work on, to review with Nick), whereas 01b_Spp_dist_sep produces outputs specific to each unique database (e.g., if giving products to data collector for their review). Previously there were a few places where code had to be changed (found by searching): "IF data collector" (followed by 'merged' or 'separate').
+## NOTES:: This is the combined-across-data-collectors version (for me to work on, to review with Nick); the per-database variant (for handing products to each data collector) is Spp_dist_sep.R in the Ssp-sandbox repo.
 
 # Libraries & data --------------------------------------------------------
 # Load libraries
@@ -34,12 +37,8 @@ conflicts_prefer(dplyr::filter)
 
 ## Load data
 Bird_pcs_all <-  read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_all.csv", guess_max = Inf)   # Recording is sparse
-# Bird_pcs_dist.csv is both an input and an output of this script; on the first run after the
-# 2026 English rename it may still carry the old Spanish headers, so Anglicise on read
-Bird_pcs_dist <- read_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf) %>%
-  rename(any_of(c(Id_survey = "Id_muestreo", Id_survey_no_dc = "Id_muestreo_no_dc",
-                  Date = "Fecha", Institution_name = "Nombre_institucion", Department = "Departamento",
-                  Distance_bird = "Distancia_bird", Obs_type = "Tipo_registro", Recording = "Grabacion")))
+# Bird_pcs_dist.csv is 04b_Range_apply.R's output -- the observations after the curated removals; used here to map the "after adjustment" state
+Bird_pcs_dist <- read_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf)
 Elev_ranges <- read_csv(file = "Derived/Excels/Elev_ranges_all_sources.csv")
 Site_covs <- read_csv(file = "Derived/Excels/Site_covs.csv")
 Event_covs_pcs <- read_csv(file = "Derived/Excels/Event_covs_pcs.csv")
@@ -357,99 +356,11 @@ dist_plots[[length(dist_plots) + 1]] <- legend
 if(FALSE){
   pdf(file = paste0("Derived/Fuera_rango/Maps/", file_name, format(Sys.Date(), "%m.%d.%y"), ".pdf"), width = 8.5, height = 11, bg = "white")
   print(marrangeGrob(grobs = dist_plots, ncol = 3, nrow = 3, layout_matrix = matrix(1:9, 3, 3, TRUE)))
-  dev.off() 
-}
-stop() 
-
-# Remove / change species -------------------------------------------------
-## Using the PDF maps generated in this script, the data collectors (GAICA), Nick and I assessed how likely each species observation was outside of range. We based this on the distinctiveness of the species, the presence of similar species (especially congeners), and the presence or absence of major geographical barriers (e.g., mountains).
-
-# Manually generated list of species to remove / change
-Remove_change <- read_csv("Derived/Excels/Spp_remove_change.csv") %>% 
-  select(-c(Editor, Observaciones)) %>% 
-  # Create 1 row per department
-  separate_rows(Departamentos_afectados, sep = ",\\s*") 
-
-# Add department information for each bird observation
-Bird_pcs_all2 <- Bird_pcs_all %>%
-  left_join(Site_covs[, c("Id_survey_no_dc", "Department", "Elev")])
-
-# Separate 1) remove vs change and 2) department-specific vs global
-Remove_dept <- Remove_change %>% 
-  filter(Recomendacion == "Remove" & !is.na(Departamentos_afectados))
-Remove_all <- Remove_change %>% anti_join(Remove_dept) %>% 
-  filter(Recomendacion == "Remove")
-Change_dept <- Remove_change %>% 
-  filter(Recomendacion == "Change" & !is.na(Departamentos_afectados))
-Change_all <- Remove_change %>% 
-  filter(Recomendacion == "Change" & is.na(Departamentos_afectados))
-
-# Around Santa Marta area Henicorhina leucophrys > 600m are OK 
-row_add <- Bird_pcs_all2 %>%
-  filter(Species_ayerbe == "Henicorhina leucophrys" & Department == "Guajira" & Elev > 600)
-
-# Apply removes first (anti_join)
-Bird_pcs_all3 <- Bird_pcs_all2 %>% 
-  anti_join(
-    Remove_dept, 
-    by = c("Species_ayerbe", 
-           "Department" = "Departamentos_afectados")
-  ) %>% anti_join(Remove_all) %>% 
-  # Add back in single Henicorhina leucophrys observation
-  bind_rows(row_add) %>% 
-  select(-Elev)
-
-## Join the 'Change dataframes' which have Species_cambiado, and then apply the changes with mutate
-
-# This requires an extra step because the first join adds columns that then prevent correct matching in the second join. Create custom function to implement changes
-implement_changes <- function(df){
-  df %>% mutate(Species_ayerbe = ifelse(
-    !is.na(Species_cambiado), Species_cambiado, Species_ayerbe
-  ))
+  dev.off()
 }
 
-# Swap species using 'Change' data frames
-Bird_pcs_all4 <- Bird_pcs_all3 %>% 
-  left_join(
-    Change_dept, 
-    by = c("Species_ayerbe", 
-           "Department" = "Departamentos_afectados")
-  ) %>% implement_changes() %>% 
-  # Remove columns before next join
-  select(-c(Species_cambiado, Recomendacion)) %>%
-  left_join(Change_all) %>%
-  implement_changes() 
-
-# Examine / confirm -----------------------------------------------------
-## Examine to ensure that code worked as expected 
-# Removed 41 observations
-nrow(Bird_pcs_all) - nrow(Bird_pcs_all4)
-# Remove 12 species 
-Spp_og <- Bird_pcs_all %>% pull(Species_ayerbe) %>% unique()
-Spp_fin <- Bird_pcs_all4 %>% pull(Species_ayerbe) %>% unique()
-length(Spp_og) - length(Spp_fin)
-
-# These are the species that should have been removed
-Spp_rm <- Remove_change %>% 
-  filter(Recomendacion == "Remove" & is.na(Departamentos_afectados)) %>% 
-  pull(Species_ayerbe)
-# Should be 0 rows
-Bird_pcs_all4 %>% filter(Species_ayerbe %in% Spp_rm)
-
-# Example species - Myiarchus apicalis (changed to ferox)
-Bird_pcs_all %>% filter(Species_ayerbe == "Myiarchus ferox") # Originally 12
-Bird_pcs_all4 %>% filter(Species_ayerbe == "Myiarchus ferox") # Final of 31
-# 19 apicalis changed -> ferox in Meta; 4 removed in Guajira
-Bird_pcs_all2 %>% filter(Species_ayerbe == "Myiarchus apicalis") %>% 
-  tabyl(Department)
-Bird_pcs_all4 %>% filter(Species_ayerbe == "Myiarchus apicalis") %>% 
-  tabyl(Department) # In correct departments
-
-# Export ------------------------------------------------------------------
-Bird_pcs_export <- Bird_pcs_all4 %>%
-  select(-c(Species_cambiado, Recomendacion, contains(c("Department", "Departamentos_afectados"))))
-# Export bird point counts taking into account their distributions
-Bird_pcs_export %>% write_csv("Derived/Excels/Bird_pcs/Bird_pcs_dist.csv")
+# Screening + maps done; the review helpers below are optional and interactive (external files, eBird API, View())
+stop()
 
 # EXTRAS ------------------------------------------------------------------
 # I left this code as these were previously important steps in the workflow. The three components are 1) examining Robert & Yuri's recommendations for the species outside of known distribution, and 2) confirming the observations / distributions for the three species that had no matches with Ayerbe (2018) taxonomy

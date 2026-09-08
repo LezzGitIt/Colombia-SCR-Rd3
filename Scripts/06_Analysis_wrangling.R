@@ -1,5 +1,5 @@
 ## PhD birds in silvopastoral landscapes ##
-## Data wrangling 08 -- Final wrangling to filter 'Bird_pcs_dist.csv' to generate 'Bird_pcs_analysis.csv', which is the subset of observations within the fixed point count radius (50m) and that used the habitat (e.g. excluding flyovers)
+## Data wrangling 06 -- Final wrangling to filter 'Bird_pcs_dist.csv' (from 04b_Range_apply.R) to generate 'Bird_pcs_analysis.csv', which is the subset of observations within the fixed point count radius (50m) and that used the habitat (e.g. excluding flyovers)
 
 ## Description: These are the steps we took to prepare the analysis file for our purposes; however, these are only suggestions and should be modified according to the needs of your analysis
 
@@ -11,10 +11,7 @@ conflicts_prefer(dplyr::select)
 conflicts_prefer(dplyr::filter)
 
 # guess_max = Inf: Recording is sparse (only ~180 non-NA, near the end) so the default type guess misreads it as logical and drops the values
-# any_of rename: Anglicise if 04 hasn't yet rewritten this file with English headers (2026 rename)
-Bird_pcs_dist <- read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf) %>%
-  rename(any_of(c(Id_survey = "Id_muestreo", Id_survey_no_dc = "Id_muestreo_no_dc", Date = "Fecha",
-                  Distance_bird = "Distancia_bird", Obs_type = "Tipo_registro", Recording = "Grabacion")))
+Bird_pcs_dist <- read_csv(file = "Derived/Excels/Bird_pcs/Bird_pcs_dist.csv", guess_max = Inf)
 Taxonomy <- read_csv(file = "Derived/Excels/Taxonomy/Taxonomy.csv")
 
 # General formatting ---------------------------------------------------------
@@ -90,7 +87,6 @@ Bird_pcs_analysis %>% left_join(Site_covs) %>%
   arrange(desc(N_ecor))
 
 # Export ------------------------------------------------------------------
-stop()
 Bird_pcs_analysis %>%
   select(-Species_ayerbe_) %>% 
   write_csv("Derived/Excels/Bird_pcs/Bird_pcs_analysis.csv")

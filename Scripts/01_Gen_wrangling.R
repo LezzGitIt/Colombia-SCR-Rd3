@@ -2,13 +2,18 @@
 # General data wrangling 01 -- Create base data frame (Bird_pcs_all)
 ## This script loads raw data from data providers, combines data into single df, & tidies and filters data to produce the environment necessary for future scripts & downstream analyses
 
-# Contents
+## Rows removed: 
+# Non-point-count protocols: Drops mist-net captures, ad-hoc sightings, and free-roaming transects (recorridos libres).
+# Practice: UBC-GAICA "ensayo" dates, the Otún Quimbaya "Practica" point, Santiago Meta 2026-01-05
+# Family-level / unknown recordings: c("Trochilidae", "Tyrannidae", "Desconocido") stripped from Natalia's recordings
+
+## Contents
 # 1) Load & format data that will allow for join into a single df
 # 2) Merge into single df & continue to format
 # 3) Create various point count (PC) files different files based on inclusion of location, date, and habitat
 # 4) Download environmental data -- Temp, precipitation, & elevation
 # 5) Identify how many distinct sampling periods each point count location has
-# 6) Export Rdata object
+# 6) Export CSVs
 
 # To do -------------------------------------------------------------------
 ## Time removal modeling for CIPAV data? 
@@ -546,6 +551,11 @@ Birds_comb2 <- Birds_comb %>%
   mutate(Obs_type = case_when(
     Obs_type == "Visual-auditivo" ~ "Visual/auditivo",
     Obs_type == "Vuelo" ~ "Sobrevuelo",
+    # The 2025 UBC El Hatico sheet coded Obs_type as single/double letters -- expand to the standard full words
+    Obs_type == "A" ~ "Auditivo",
+    Obs_type == "V" ~ "Visual",
+    Obs_type == "Va" ~ "Visual/auditivo",
+    Obs_type == "Sv" ~ "Sobrevuelo",
     .default =  Obs_type
   )) %>%
   mutate(Species_original = ifelse(
@@ -778,12 +788,12 @@ Pc_locs_sf <- st_as_sf(Pc_locs,
                        crs = 4326,
                        remove = F)
 
-#if(FALSE){
+if(FALSE){
   # Export shapefiles
   st_write(Pc_locs_dc_sf, "Derived/Geospatial/shp/Pc_locs_dc.gpkg", layer = "Pc_locs_dc")
   st_write(Pc_locs_sf, "Derived/Geospatial/shp/Pc_locs.gpkg", layer = "Pc_locs")
 stop()
-#}
+}
 
 # >Pc_hab -----------------------------------------------------------------
 # Data collectors were not always consistent in how they classified the habitats, and there is some level of subjectivity in quantifying habitat gradients into categories.
@@ -1079,9 +1089,9 @@ Covs_main_ubc <- df_birds_red$Ubc_meta22 %>%
       Noise == "Ninguno" ~ "None",
       Noise == "Ligero" ~ "Light",
       Noise == "Moderado" ~ "Moderate",
-      Noise == "Alto" ~ "Loud"
+      Noise == "Alto" ~ "High"
       )
-    ) 
+    )
 
 Event_covs_ubc22 <- df_metadata$Ubc_meta22 %>% 
   rename_with(.fn = ~str_remove(.x, "Observacion_climatica_")) %>% 
@@ -1134,7 +1144,22 @@ Event_covs_all <- Pc_date9 %>%
 anti_join(Event_covs_ubc_ug, Event_covs_all)
 
 # Keep (and order) only the relevant columns
-Event_covs_pcs <- Event_covs_all %>% 
+Event_covs_pcs <- Event_covs_all %>%
+  # Collapse the categorical weather covariates to one vocabulary each -- field sheets mixed Spanish, English, and casing across seasons
+  mutate(
+    Noise = case_when(
+      str_to_lower(Noise) %in% c("none", "ninguno") ~ "None",
+      str_to_lower(Noise) %in% c("light", "ligero", "leve") ~ "Light",
+      str_to_lower(Noise) %in% c("moderate", "moderado") ~ "Moderate",
+      str_to_lower(Noise) %in% c("high", "loud", "alto") ~ "High",
+      .default = Noise
+    ),
+    Cows_50m = case_when(
+      str_to_lower(Cows_50m) %in% c("yes", "si", "sí") ~ "Yes",
+      str_to_lower(Cows_50m) %in% c("no") ~ "No",
+      .default = Cows_50m
+    )
+  ) %>%
   select(Id_survey, Id_survey_no_dc, Id_group, Institution_name, Uniq_db, Date, Year_grp, Year, Month, Day, Julian_day, Sampling_day, Pc_start, Pc_length, N_samp_periods, N_reps, Rep_year_grp, Season, Rep_season, Spp_obs, Registered_by, Noise, Weather, Cows_50m)
 
 # Environmental data ---------------------------------------------------

@@ -379,10 +379,9 @@ df_birds$UniLlanos %>%   # df_birds is pre-rename -- still the raw Spanish heade
   distinct(Tipo_registro, Distancia_observacion)
 
 ## Remove practice day data
-# UBC-GAICA Cafetera
+# UBC-GAICA Cafetera -- only the "ensayo" (trial) days. LCA_07-09 (Quindio / Cafetera) were visited once by UBC-GAICA in 2024 but the locations carry a full GAICA 2017 closed-period series, so the 2024 revisit stays -- it adds a second sampling period. Dropping under-replicated surveys is an analysis choice for 06_Analysis_wrangling.R / the chapter repos, not the pipeline.
 df_birds_red$Ubc_gaica_Caf <- df_birds_red$Ubc_gaica_Caf %>%
-  filter(!Date %in% as.Date(c("2024-05-27", "2024-05-28"))) %>% # Ensayo dates
-  filter(!Id_survey %in% c(paste0("UBCG-MB-Q-LCA_0", 7:9))) # PCs surveyed 1x
+  filter(!Date %in% as.Date(c("2024-05-27", "2024-05-28"))) # Ensayo dates
 
 # UBC-GAICA Otun Quimbaya
 df_birds_red$Ubc_gaica_OQ <- df_birds_red$Ubc_gaica_OQ %>% 

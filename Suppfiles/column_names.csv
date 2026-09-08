@@ -51,10 +51,11 @@ Min.Latitude,Min.Latitude,,Functional_traits
 Month,Month,Mes,Event_covs
 N_reps,N_reps,,Event_covs
 N_samp_periods,N_samp_periods,,Event_covs
+N_visits,N_visits,,Site_covs
 Noise,Noise,,Event_covs
 Obs_type,Obs_type,,Bird_pcs_all
 Order,Order,,Taxonomy
-Pc_length,Pc_length,,Event_covs
+Pc_duration,Pc_duration,,Event_covs
 Pc_start,Pc_start,,Bird_pcs_all; Bird_pcs_analysis; Event_covs
 Primary.Lifestyle,Primary.Lifestyle,,Functional_traits
 Primary_diet,Primary_diet,,Functional_traits

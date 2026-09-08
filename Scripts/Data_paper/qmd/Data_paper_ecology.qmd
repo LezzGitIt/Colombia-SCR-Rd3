@@ -689,11 +689,11 @@ Print_tbl <- function(df, join_df = NULL, remove_field = NULL, drop_datatype = F
       x
     }
     break_all <- function(x) gsub("(\\\\_|[./])", "\\1\\\\allowbreak{}", x)   # Field name / Source: break after "." "_" "/"
-    break_us  <- function(x) gsub("(\\\\_)", "\\1\\\\allowbreak{}", x)         # ranges: only after "_" (keep numbers intact)
+    break_us  <- function(x) gsub("(\\\\_)", "\\1\\\\allowbreak{}", x)         # Values: only after "_" (keep numbers intact)
     df <- df %>%
       mutate(across(everything(), tex_esc)) %>%
       mutate(across(any_of(c("Field_name", "Source")), break_all)) %>%
-      mutate(across(any_of(c("Low_range", "High_range")), break_us))
+      mutate(across(any_of("Values"), break_us))
     escape_latex <- FALSE
   }
 
@@ -701,16 +701,14 @@ Print_tbl <- function(df, join_df = NULL, remove_field = NULL, drop_datatype = F
     rename_with(.fn = ~str_replace(., "_", " ")) %>%
     kable("latex", booktabs = TRUE, longtable = TRUE, escape = escape_latex) %>%
     kable_styling(latex_options = c("striped", "hold_position"), position = "center") %>%
-    column_spec(2, width = if (drop_datatype) "5.7cm" else "5cm")
+    column_spec(2, width = if (drop_datatype) "6.2cm" else "5cm")
   if(drop_datatype){
-    # Functional_traits table: hand-tuned widths so Definition gets the room. Field
-    # name, Source, and the two range columns hold short values, so keep them tight.
-    # The last two columns are always Low/High range; Source (when present) sits
-    # between Definition and them.
+    # Functional_traits table: hand-tuned widths so Definition gets the room. Field name, Source, and Values hold short strings, so keep them tight.
+    # The last column is always Values; Source (when present) sits between Definition and it.
     n <- ncol(df)
     out <- out %>% column_spec(1, width = "3.2cm")
-    if("Source" %in% names(df)) out <- out %>% column_spec(3, width = "1.6cm")
-    out <- out %>% column_spec(n - 1, width = "1.7cm") %>% column_spec(n, width = "1.7cm")
+    if("Source" %in% names(df)) out <- out %>% column_spec(3, width = "1.8cm")
+    out <- out %>% column_spec(n, width = "2.6cm")
   }
   out
 }
@@ -732,7 +730,7 @@ Cols_metadata_l <- readRDS("Rdata/Cols_metadata_l.rds")
 
 ```{r}
 #| label: tbl-bird-abundances-meta
-#| tbl-cap: Metadata associated with the principal Bird point counts ('Bird_pcs_all.csv') dataset, including the identifying information of the point count.
+#| tbl-cap: "Metadata associated with the principal Bird point counts ('Bird_pcs_all.csv') dataset, including the identifying information of the point count. Species names (the 'Species_ayerbe' field) follow the illustrated field guide of @ayerbe2018guia, which uses the AOS–SACC taxonomy."
 
 Print_tbl(df = Cols_metadata_l$Bird_abu, join_df = Covs_defs$Bird_abundances)
 ```
@@ -765,7 +763,7 @@ Print_tbl(df = Cols_metadata_l$Taxonomy, join_df = Covs_defs$Taxonomy,
 
 ```{r}
 #| label: tbl-functional-traits-meta
-#| tbl-cap: "Metadata associated with the 'Functional_traits.csv' dataset. The 'Source' column gives the origin of each trait: AVONET [@tobiasAVONETMorphologicalEcological2022], BIRDBASE [@sekerciogluBIRDBASEGlobalDataset2025], BirdLife (generation length from @birdGenerationLengthsWorlds2020; IUCN status from the HBW/BirdLife checklist), and Ayerbe-Quiñones (2018) [@ayerbe2018guia] for elevational range. See the 'Metadata' tab of the 'AVONET3_BirdTree.xlsx' for detailed definitions of the AVONET fields. The definition for 'Species_ayerbe' is not provided."
+#| tbl-cap: "Metadata associated with the 'Functional_traits.csv' dataset. The 'Source' column gives the origin of each trait: AVONET [@tobiasAVONETMorphologicalEcological2022], BIRDBASE [@sekerciogluBIRDBASEGlobalDataset2025], @birdGenerationLengthsWorlds2020, @ayerbe2018guia, and HBW/BirdLife checklist. See the 'Metadata' tab of the 'AVONET1_BirdLife.xlsx' for detailed definitions of the AVONET fields. The definition for 'Species_ayerbe' is not provided."
 
 Print_tbl(df = Cols_metadata_l$Functional_traits,
           join_df = Covs_defs$Functional_traits,
@@ -879,8 +877,7 @@ I am grateful to Camila Gómez, Nick Bayly, and several students at the Universi
 - All co-authors:
 
   - The 5 ecoregions: Please see table 2 and confirm names + descriptions feel representative.
-  - I think a shapefile of the rio Cesar for the sampling map if anyone could locate one.
-  - Column names: Lets go with English, with a script to translate the column names to Spanish.
-  - I wonder about removing ‘mbd’ and ‘distancia’, and just using Data collector + year to identify the different data sets? The original argument was the ‘Distancia’ dataset was a different research question, but early GAICA surveying (2013-2017) was conducted only in forest as they wanted to understand connectivity, so is also a different research question. GAICA Distancia did also use a different methodology, but so did CIPAV.
+  - Column names: Lets go with English, with a script to translate the column names to Spanish. The data within the CSVs is still a mix of English and Spanish.
+  - I wonder about removing ‘mbd’ and ‘distancia’, and just using Data collector + year to identify the different data sets? The original argument was the ‘Distancia’ dataset was a different research question, but early GAICA surveying (2013-2017) was conducted only in forest as they wanted to understand connectivity, so is also a different research question. GAICA Distancia did also use a different methodology, but so did CIPAV, so again the naming doesnt feel consistent across datasets.
 
 # References {.unnumbered}

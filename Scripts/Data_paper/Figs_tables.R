@@ -614,25 +614,40 @@ print(Pc_per_farm_db_p)
 
 # Data sets ---------------------------------------------------------------
 # >Metadata tbls -----------------------------------------------------------
-## Custom function to extract the metadata for a given dataset 
+### Summarize one column's contents for the metadata tables, as a single string.
+## Numeric / date / time columns give "min – max"; logical columns give both values; a short categorical gives its sorted level list; anything longer (including identifier / name columns, e.g. the Taxonomy crosswalk) gives "<n> distinct" plus a missing count when relevant -- for those the full level list lives in the xlsx 'Column_content_definition'.
+summarize_values <- function(col_data){
+  non_na <- col_data[!is.na(col_data)]
+  if (length(non_na) == 0) return(NA_character_)
+  if (inherits(col_data, "hms")) {
+    # range() drops the hms class, so take the numeric span and rebuild the clock string
+    return(paste(as.character(hms::as_hms(range(as.numeric(non_na)))), collapse = " – "))
+  }
+  if (inherits(col_data, "Date") || inherits(col_data, "POSIXct")) {
+    return(paste(as.character(range(non_na)), collapse = " – "))
+  }
+  if (is.numeric(col_data)) {
+    return(paste(round(range(non_na), 2), collapse = " – "))
+  }
+  if (is.logical(col_data)) return("FALSE, TRUE")
+  categories <- sort(unique(as.character(non_na)))
+  n_missing <- sum(is.na(col_data))
+  if (length(categories) <= 8 && sum(nchar(categories)) <= 60) {
+    paste(categories, collapse = ", ")
+  } else {
+    paste0(length(categories), " distinct",
+           if (n_missing > 0) paste0(", ", n_missing, " missing") else "")
+  }
+}
+
+## Column-by-column metadata for one dataset: field name, data type, and contents.
 extract_metadata <- function(df){
   map_dfr(names(df), function(col_name) {
     col_data <- df[[col_name]]
-    if (inherits(col_data, "hms")) {
-      low_val <- min(as.character(col_data, na.rm = TRUE))
-      high_val <- max(as.character(col_data, na.rm = TRUE))
-    } else if (is.numeric(col_data)) {
-      low_val  <- as.character(round(min(col_data, na.rm = TRUE), 2))
-      high_val <- as.character(round(max(col_data, na.rm = TRUE), 2))
-    } else {
-      low_val <- as.character(min(col_data, na.rm = TRUE))
-      high_val <- as.character(max(col_data, na.rm = TRUE))
-    }
     tibble(
       Field_name = col_name,
       Data_type = class(col_data)[1],
-      Low_range = low_val,
-      High_range = high_val
+      Values = summarize_values(col_data)
     )
   })
 }

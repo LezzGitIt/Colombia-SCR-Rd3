@@ -165,7 +165,8 @@ Event_covs <- Event_covs_pcs %>%
   mutate(Year_wvsc = ifelse(Year %in% c(2025, 2026), 2024, Year)) %>%
   left_join(Cover_tbl,   by = c("Id_survey_no_dc", "Year_wvsc" = "Year")) %>%
   left_join(Height_tbl2, by = c("Id_survey_no_dc", "Year_wvsc" = "Year")) %>%
-  select(-any_of(c("Year_wvsc", "Scale_m")))
+  # Pc_obs_span is a QA/QC aid only (see 01_Gen_wrangling.R) -- the deposit keeps Pc_duration
+  select(-any_of(c("Year_wvsc", "Scale_m", "Pc_obs_span")))
 
 Event_covs %>% filter(is.na(Canopy_height_m) | is.na(Canopy_cover))
 
@@ -181,11 +182,10 @@ Event_covs %>% ggplot() +
 Event_covs %>%
   Na_rows_cols(
     id_cols = Id_survey,
-    cols_inc = -c(Registered_by, Noise, Weather, Cows_50m)
+    cols_inc = -c(Registered_by, Noise, Weather, Cows_50m, Pc_duration)
   )
 
 # Export ------------------------------------------------------------------
-stop()
 Event_covs %>% write_csv(file = "Derived/Excels/Event_covs.csv")
 
 # Export the masked files to save time in future iterations 

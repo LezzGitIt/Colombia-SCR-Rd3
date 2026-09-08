@@ -21,7 +21,7 @@ phylogenetic diversity).
 | `Bird_pcs_all.csv` | every point-count observation | `Id_survey`, `Id_survey_no_dc`, `Species_ayerbe` |
 | `Bird_pcs_analysis.csv` | analysis-ready subset (50 m radius, used the habitat) | same |
 | `Event_covs.csv` | per-survey covariates (date, time, observer, weather, land cover) | `Id_survey`, `Id_survey_no_dc` |
-| `Site_covs.csv` | per-location covariates (elevation, climate, distance to nearest farm) | `Id_survey_no_dc` |
+| `Site_covs.csv` | per-location covariates (elevation, climate, distance to nearest farm, number of visits) | `Id_survey_no_dc` |
 | `Taxonomy.csv` | SACC ↔ BirdLife ↔ eBird ↔ BirdTree crosswalk (Colombia) | `Species_ayerbe` |
 | `Functional_traits.csv` | per-species trait table (AVONET / BIRDBASE / BirdLife) | `Species_ayerbe` |
 | `Column_definitions_final.xlsx` | field definitions for each table | |

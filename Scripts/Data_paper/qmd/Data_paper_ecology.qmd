@@ -82,9 +82,15 @@ Num_ft <- Data$Functional_traits %>%
   ncol()
 Num_farms <- unique(Data$Site_covs$Id_scr) %>% length()
 
-# Point counts were sampled 1–15 times, with [CREATE] 74% of locations visited 3 times within a closed sampling period
-Per_1_visit <- 128 / Num_sites # Cipav points / all points 
-Per_3_visits <- (1 - Per_1_visit) * 100
+# Visits per physical location, pooled across data collectors -- the Event_covs 'N_reps' column counts repeats per Id_survey (one collector's point count) and so tops out lower than this
+Visits_per_loc <- Data$Event_covs %>% count(Id_survey_no_dc, name = "n_visits")
+Max_visits_loc <- max(Visits_per_loc$n_visits)
+
+# Point counts (excluding CIPAV, surveyed once) with >= 3 repeat surveys inside one closed sampling period -- also cited in the Research methods section
+Max_pcs_per_season <- Data$Event_covs %>%
+  filter(Institution_name != "Cipav") %>%
+  slice_max(order_by = Rep_season, by = Id_survey)
+Per_three_plus <- round(nrow(filter(Max_pcs_per_season, Rep_season >= 3)) / nrow(Max_pcs_per_season) * 100, 1)
 ```
 
 ## Format of document
@@ -109,7 +115,7 @@ Here we present the 'Bird diversity in productive landscapes of Colombia' datase
 
 ![The locations of 504 point count sites in 73 farms across five ecoregions in Colombia. Colombia is extremely topographically diverse, with the Andes mountain range trifurcating into three distinct chains (i.e., 'cordilleras'), in addition to more isolated 'sierras' (e.g., Sierra Nevada de Santa Marta), that are critical for understanding bird distributions in Colombia. In between the chains of the Andes lie two major river valleys, the Cauca and Magdalena (labeled in red). Major rivers also run off the Eastern slope of the Andes into the plains and eventually into the Orinoco and Amazon rivers. The shape of the symbol corresponds to the data collector, and the size corresponds to the number of point counts within a quarter degree squared grid cell. Note that a small jitter was applied to all points, and a larger jitter was applied to points in the Piedemonte region to improve visibility. Elevation was log-transformed to emphasize altitudinal gradients at lower elevations.](../../../Figures/Static/Map_sampling/TNC_Field_Map_Final.png){#fig-sampling-map}
 
-The `r Tot_pc_prty` point count surveys were sampled 1–19 times total, with `r round(Per_3_visits, 0)`% of locations visited $\geq$ 3 times within a closed sampling period, enabling estimation of detection probabilities through hierarchical models. Land-use landcover types surveyed include mature forest, forest fragments, riparian forest, crops, intensive pasture, several types of silvopasture, and heterogeneous mosaics (i.e., no single dominant landcover type). This dataset permits analyses of bird diversity patterns and community composition across land-use gradients, especially the effects of silvopastoral practices on biodiversity in tropical productive landscapes. We also provide complementary datasets of taxonomic equivalents (BirdLife, BirdTree, and eBird / Clements), functional traits, site covariates, and survey covariates (@tbl-file-info), facilitating a variety of research questions and analytical approaches. For example, one could examine the interacting effects of local management practices and climate, while controlling for phylogenetic non-independence, to understand silvopasture's influence on functional diversity and ecosystem service provisioning. Importantly, the longitudinal nature of these data allow for analyses of population trends or colonization/extinction dynamics, which is critical for conservation practitioners [@leesRoadmapIdentifyingFilling2020].
+The `r Num_sites` point count locations were each surveyed 1–`r Max_visits_loc` times (`r Tot_pc_prty` surveys in total, pooled across data collectors). Excluding the point counts conducted by CIPAV (surveyed once), `r round(Per_three_plus, 0)`% were sampled $\geq$ 3 times within a closed sampling period, enabling estimation of detection probabilities through hierarchical models. Land-use landcover types surveyed include mature forest, forest fragments, riparian forest, crops, intensive pasture, several types of silvopasture, and heterogeneous mosaics (i.e., no single dominant landcover type). This dataset permits analyses of bird diversity patterns and community composition across land-use gradients, especially the effects of silvopastoral practices on biodiversity in tropical productive landscapes. We also provide complementary datasets of taxonomic equivalents (BirdLife, BirdTree, and eBird / Clements), functional traits, site covariates, and survey covariates (@tbl-file-info), facilitating a variety of research questions and analytical approaches. For example, one could examine the interacting effects of local management practices and climate, while controlling for phylogenetic non-independence, to understand silvopasture's influence on functional diversity and ecosystem service provisioning. Importantly, the longitudinal nature of these data allow for analyses of population trends or colonization/extinction dynamics, which is critical for conservation practitioners [@leesRoadmapIdentifyingFilling2020].
 
 ![Phylogenetic relationships of the 587 bird species observed in our data set, represented by 585 tips (some species share a tip due to taxonomic differences between BirdTree and Ayerbe). There were 25 orders, of which 19 are shown using grayscale representative species (downloaded from phylopic). The number of species in each order is listed in parentheses.](../../../Figures/Static/Phylogeny_equal_sizes.png){#fig-phylogeny}
 
@@ -385,11 +391,11 @@ Site_covs <- Data$Site_covs[c("Id_survey_no_dc", "Id_scr", "Habitat", "Ecoregion
 Covs_join <- Data$Event_covs %>% 
   left_join(Site_covs) 
 
-# Calculate duration for CIPAV 
+# Duration range for CIPAV (the only data set with variable-length counts); every other data set used a fixed 10-minute protocol
 Cipav_duration <- Covs_join %>% filter(Uniq_db == "Cipav mbd") %>%
-  summarize(min_dur = min(Pc_length), 
-            max_dur = max(Pc_length)) %>% 
-  mutate(Duration = paste0("0 - ", max_dur / 60)) %>% 
+  summarize(min_dur = as.numeric(min(Pc_duration, na.rm = TRUE)) / 60,
+            max_dur = as.numeric(max(Pc_duration, na.rm = TRUE)) / 60) %>%
+  mutate(Duration = paste0(round(min_dur), " - ", round(max_dur))) %>%
   pull(Duration)
 Duration_minutes <- c(Cipav_duration, rep("10", 5))
 # Years sampled
@@ -443,21 +449,11 @@ Data_set_tbl %>% full_join(Data_set_tbl_summ) %>%
 
 a.  Data collection period, frequency, etc.: Information necessary to understand temporal sampling regime
 
-    ```{r}
-    #| label: Per-three-plus
-
-    Max_pcs_per_season <- Data$Event_covs %>% 
-      filter(Institution_name != "Cipav") %>% 
-      slice_max(order_by = Rep_season, by = Id_survey)
-    Three_plus_reps <- Max_pcs_per_season %>% filter(Rep_season >= 3)
-    Per_three_plus <- round(nrow(Three_plus_reps) / nrow(Max_pcs_per_season) * 100, 1)
-    ```
-
     Point count locations were sampled in multiple closed sampling periods by the same data collector using (essentially) the same methodology in several ecoregions. For example, in the Ecorregion Cafetera, GAICA surveyed the same point count locations in June 2013, November 2016, and June 2024 (with guidance from UBC in 2024; @fig-temporal-sampling). No point count locations were sampled in more than four distinct sampling periods. Generally, point count locations were not sampled by multiple institutions, with the exception of the University of British Columbia (UBC). In 2022 UBC resampled 54 point count locations that were sampled in 2019 by Universidad de los Llanos; in 2024 UBC, with the help of GAICA, resampled 42 point counts that were surveyed in the 2010's by GAICA in the Cafetera and Piedemonte ecoregions (14 Cafetera, 28 Piedemonte); finally in 2026, UBC resampled the 54 point counts surveyed originally by Universidad de los Llanos, as well as 28 point counts originally sampled by GAICA in the 2010s (22 of which were also resampled in 2024).
 
     Excluding the point counts conducted by CIPAV, which were surveyed only once, `r Per_three_plus`% of point count locations were sampled at least 3 times within a closed sampling period (i.e., assumption of no births, deaths, immigration, or emigration; @fig-pc-farm-db). This 'robust' sampling design allows for modeling detectability and ultimately more robust estimates of occupancy and abundance [@mackenzieEstimatingSiteOccupancy2003], although only Ubc mbd and Ubc gaica mbd recorded detection covariates (e.g., weather, noise) systematically.
 
-![The temporal distribution of point count sampling across 5 ecoregions, where the shape of the points indicates unique point count locations within a given ecoregion. For example, in El Piedemonte GAICA resampled the same point count locations in October of 2016 and March of 2017 (depicted as crosses). Each point represents a date that point counts were sampled, with point count locations resampled across sampling periods in four ecoregions (Bajo Magdalena, Cafetera, Piedemonte, Rio Cesar).](../../../Figures/Pc_month_year_day_ecoregion.png){#fig-temporal-sampling}
+![The temporal distribution of point count sampling across 5 ecoregions, where the shape of the points indicates the survey group within a given ecoregion, i.e. a set of locations surveyed at least once (but often tracked across sampling periods). For example, in El Piedemonte GAICA resampled the same point count locations in October of 2016 and March of 2017 (depicted with the '+' symbol). Each point represents a date that point counts were sampled, with point count locations resampled across sampling periods in four ecoregions (Bajo Magdalena, Cafetera, Piedemonte, Rio Cesar).](../../../Figures/Pc_month_year_day_ecoregion.png){#fig-temporal-sampling}
 
 ### Research methods
 
@@ -483,7 +479,7 @@ Ecor_pc_no_pdm <- Ecor_pc %>%
 
 a.  Field/laboratory: Description or reference to standard field/laboratory methods\
     \
-    Generally, point counts were conducted for 10 minutes in the morning, between sunrise and 11 AM (`r Per_bfor_11`%), recording all birds seen or heard within a 50-m fixed radius. CIPAV mbd employed a different methodology, using a 25-m radius and surveying for a variable amount of time, as did GAICA Distancia, estimating distance to any bird seen or heard and surveying the mornings and afternoons (@tbl-by-data-set). Data sets differ in the intensity with which farms were surveyed – some data sets contain fewer farms that were more heavily sampled (e.g., Unillanos mbd), whereas others surveyed many farms but with less sampling intensity (e.g., Cipav mbd; @fig-pc-farm-db). Within each farm, point counts were generally separated by 100 - 150 meters to ensure independence (but there were exceptions). Note that excluding CIPAV, all data collectors recorded whether observations were flyovers (i.e., they did not use the habitat). Please see the 'Birds_SSP_Colombia_Detailed_methodologies' document for a more detailed accounting of the methods utilized by each data collector. The Piedemonte ecoregion had the most comprehensive sampling, with about half of the total point count locations (n = `r Pc_piedemonte`) sampled there. All other ecoregions were surveyed at `r min(Ecor_pc_no_pdm$n)` – `r max(Ecor_pc_no_pdm$n)` unique locations.\
+    Generally, point counts were conducted for 10 minutes in the morning, between sunrise and 11 AM (`r Per_bfor_11`%), recording all birds seen or heard within a 50-m fixed radius. CIPAV mbd employed a different methodology, using a 25-m radius and surveying for a variable amount of time. GAICA Distancia kept the 10-minute count but estimated the distance to any bird seen or heard and surveyed both mornings and afternoons (@tbl-by-data-set). Data sets differ in the intensity with which farms were surveyed – some data sets contain fewer farms that were more heavily sampled (e.g., Unillanos mbd), whereas others surveyed many farms but with less sampling intensity (e.g., Cipav mbd; @fig-pc-farm-db). Within each farm, point counts were generally separated by 100 - 150 meters to ensure independence (but there were exceptions). Note that excluding CIPAV, all data collectors recorded whether observations were flyovers (i.e., they did not use the habitat). Please see the 'Birds_SSP_Colombia_Detailed_methodologies' document for a more detailed accounting of the methods utilized by each data collector. The Piedemonte ecoregion had the most comprehensive sampling, with about half of the total point count locations (n = `r Pc_piedemonte`) sampled there. All other ecoregions were surveyed at `r min(Ecor_pc_no_pdm$n)` – `r max(Ecor_pc_no_pdm$n)` unique locations.\
 
 ![Each data set has bird information from point counts clustered within farms. Each point represents a farm and the x-axis conveys the number of unique point count locations at each farm. The colors correspond to the number of repeat surveys at each point count, rounded to the nearest whole number. The number of distinct farms within each data set is printed to the right of each boxplot. Note that this text is to the left of the most heavily sampled farm in the 'Unillanos mbd' and 'Ubc mbd' data sets (24 point counts) for display reasons.](../../../Figures/Pc_per_farm_db.png){#fig-pc-farm-db}
 

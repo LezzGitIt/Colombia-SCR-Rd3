@@ -20,7 +20,7 @@
 if(FALSE){
   Bird_pcs_all %>% 
     filter(Uniq_db == "Cipav mbd" & Id_survey == "C-MB-A-ED_01") %>% 
-    distinct(Id_survey, Date, Hora, Species_ayerbe, Pc_length) %>% 
+    distinct(Id_survey, Date, Hora, Species_ayerbe, Pc_obs_span) %>%
     arrange(Id_survey) %>% 
     count(Species_ayerbe, sort = T) # Hora,
 }
@@ -148,7 +148,7 @@ df_birds_red <- map(df_birds_red, function(df) {
   df
 })
 
-## Group point counts, determine pc_start time & pc_length
+## Group point counts, determine Pc_start and Pc_obs_span (the span between the first and last bird recorded -- a QA/QC aid, not the survey duration; see Pc_duration below)
 # Some data collectors surveyed certain point counts multiple times on the same day, & some data collectors reported the time that each bird was observed instead of a single time at the start of the point count
 
 # Specify database specific cutoff times, as CIPAV has a single point count that is 90 minutes long (and thus should be grouped together), and UBC & Unillanos has distinct same day point counts that are only separated by 68 and 74 minutes, respectively (and thus should be grouped apart). Otherwise, largest difference in point count times in the same day is 13 minutes (from an 18 minute point count), so I used that for convenience for all other databases.
@@ -171,14 +171,14 @@ df_birds_red <- map2(df_birds_red, cutoff_time, \(df, cutoff){
     ) %>% select(-Pc_length_day)
 })
 
-# Group_by the 'Same_pc' column to generate point count start times & the length of each point count
+# Group_by the 'Same_pc' column to generate point count start times & the observation span of each point count
 df_birds_red <- map(df_birds_red, \(df){
   df %>%
     group_by(Id_survey, Year_grp, Date, Same_pc) %>%
     arrange(Id_survey, Year_grp, Date, Same_pc, Hora) %>%
     mutate(
       Pc_start = first(Hora),
-      Pc_length = hms::hms(seconds = as.numeric(last(Hora) - Pc_start))
+      Pc_obs_span = hms::hms(seconds = as.numeric(last(Hora) - Pc_start))
     ) %>% ungroup()
 })
 
@@ -539,7 +539,7 @@ Birds_comb2 <- Birds_comb %>%
       c(Farm_name, Species_ayerbe, Habitat_og, Observacion_de_grabacion, Recording), ~ str_squish(.)
     ),
     across(
-      c(Hora, Pc_start, Pc_length),
+      c(Hora, Pc_start, Pc_obs_span),
       ~ as_hms(.)
     ),
     Date = as.Date(Date)) %>%
@@ -746,7 +746,7 @@ Rep_dfs <- map2(df_birds_red, No_obs_l, \(df, No_obs){
     mutate(Rep_year_grp = row_number()) %>%
     ungroup() %>%
     distinct(
-      Ecoregion, Department, Institution_name, Uniq_db, Id_survey, Id_survey_no_dc, Year_grp, Date, Pc_start, Pc_length, Same_pc, Rep_year_grp, Spp_obs
+      Ecoregion, Department, Institution_name, Uniq_db, Id_survey, Id_survey_no_dc, Year_grp, Date, Pc_start, Pc_obs_span, Same_pc, Rep_year_grp, Spp_obs
       )
 })
 
@@ -933,16 +933,13 @@ Pc_date5 <- Pc_date4 %>%
   ) %>%
   select(-Fecha_update)
 
-# Assign Pc_length based on what we know of the data collectors' methodologies.
-# Really, Pc_length column is only relevant for CIPAV. Pc_length is helpful for data checking, but in models only CIPAV has meaningful variation (within a Uniq_db), and could just blanket assign values for between Uniq_dbs
+# Pc_duration = the survey effort for modelling. CIPAV mbd timed every point count (variable length), so its measured Pc_obs_span is the duration; every other data set used a fixed 10-minute protocol (see the data-set table in the manuscript), so 10 minutes is assigned. Pc_obs_span itself is left as computed -- NA where no bird times were recorded -- and is kept only for QA/QC (dropped before the deposit in 05_wvsc.R).
 Pc_date6 <- Pc_date5 %>%
   mutate(
-    Pc_length = case_when(
-      is.na(Pc_length) & Uniq_db %in% c("Gaica mbd", "Ubc mbd", "Unillanos mbd") ~
-        as_hms("00:00:00"),
-      is.na(Pc_length) & Uniq_db == "Gaica distancia" ~
-        as_hms("00:10:00"),
-      .default = Pc_length
+    Pc_duration = if_else(
+      Uniq_db == "Cipav mbd",
+      na_if(Pc_obs_span, as_hms("00:00:00")),   # a CIPAV count that detected only one bird has a single timestamp -> span 0; that is not a real duration, so NA (currently just C-MB-B-LP_02, 2017-08-09)
+      as_hms("00:10:00")
     ),
     AM_PM = case_when(
       Uniq_db == "Gaica distancia" & Pc_start > as_hms("14:00:00") ~ "Afternoon",
@@ -1160,7 +1157,8 @@ Event_covs_pcs <- Event_covs_all %>%
       .default = Cows_50m
     )
   ) %>%
-  select(Id_survey, Id_survey_no_dc, Id_group, Institution_name, Uniq_db, Date, Year_grp, Year, Month, Day, Julian_day, Sampling_day, Pc_start, Pc_length, N_samp_periods, N_reps, Rep_year_grp, Season, Rep_season, Spp_obs, Registered_by, Noise, Weather, Cows_50m)
+  # Column order matches the Event_covs sheet of Column_definitions_final.xlsx (Pc_obs_span is the exception -- QA-only, kept in Event_covs_pcs.csv, dropped by 05_wvsc.R; 05 appends the canopy columns)
+  select(Id_survey, Id_survey_no_dc, Institution_name, Uniq_db, Id_group, Date, Year_grp, Year, Month, Day, Julian_day, Pc_start, Pc_duration, Pc_obs_span, N_samp_periods, N_reps, Rep_year_grp, Season, Rep_season, Spp_obs, Noise, Weather, Cows_50m, Registered_by, Sampling_day)
 
 # Environmental data ---------------------------------------------------
 #stop() 
@@ -1224,12 +1222,18 @@ Distance_farm_site <- Bird_pcs_all %>%
   summarise(Distance_farm = round(suppressWarnings(max(Distance_farm, na.rm = TRUE))), .groups = "drop") %>%
   mutate(Distance_farm = na_if(Distance_farm, -Inf))
 
+### Number of surveys per physical location, pooled across data collectors and sampling periods
+# This is the location-level count behind the "surveyed 1-19 times" statement; Event_covs$N_reps instead counts repeats of one data collector's point count (Id_survey)
+Visits_site <- Event_covs_pcs %>%
+  count(Id_survey_no_dc, name = "N_visits")
+
 Site_covs <- Bird_pcs_all %>%
   distinct(Id_survey_no_dc, Id_scr, Farm_name) %>%
   left_join(Envi_df2) %>%
   left_join(Distance_farm_site) %>%
-  relocate(Id_group_no_dc, .before = Id_survey_no_dc) %>%
-  relocate(Distance_farm, .after = Farm_name)
+  left_join(Visits_site) %>%
+  # Column order matches the Site_covs sheet of Column_definitions_final.xlsx
+  select(Id_survey_no_dc, Id_scr, Ecoregion, Department, Long, Lat, Id_group_no_dc, Farm_name, Distance_farm, N_visits, Elev, Avg_temp, Tot_prec, Habitat, Habitat_sub)
 
 # >Precipitation ----------------------------------------------------------
 # Extract data & create df where each row is a point count and there are 12 'prec' columns, one for each month
@@ -1282,8 +1286,8 @@ if(FALSE) { # This process is slow
 # Check files -------------------------------------------------------------
 # Event covariates of point counts (not including landcover or landscape habitat information) - 2996  point count surveys
 nrow(Event_covs_pcs)
-# Should be no NAs 
-Event_covs_pcs %>% Na_rows_cols(cols_inc = -c(Noise, Weather, Cows_50m))
+# Should be no NAs -- except Pc_obs_span (NA where no bird times were recorded) and Pc_duration (NA for the one CIPAV count with a single detection -> zero span)
+Event_covs_pcs %>% Na_rows_cols(cols_inc = -c(Noise, Weather, Cows_50m, Pc_obs_span, Pc_duration))
 
 # Site covariates - There are 504 unique locations, so all of these are stable irrespective of which data collector
 nrow(Site_covs)

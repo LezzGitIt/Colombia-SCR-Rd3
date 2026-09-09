@@ -48,7 +48,7 @@ exported <- imap(source_paths, function(src, name) {
   }
   names(df) <- unname(to_en[names(df)])   # identity for already-English headers; a safety net for drift
   dest <- file.path("DataS1", paste0(name, ".csv"))
-  write_csv(df, dest)
+  write_csv(df, dest, na = "")   # missing values as blank cells (matches the manuscript)
   tibble(file = paste0(name, ".csv"), source = src, rows = nrow(df))
 }) %>% list_rbind()
 

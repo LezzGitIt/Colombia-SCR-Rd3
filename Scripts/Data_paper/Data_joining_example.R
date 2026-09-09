@@ -11,19 +11,19 @@ library(janitor)
 library(naniar)
 
 # Bring in data -----------------------------------------------------------
-# Read in the data and store in a named list
+# Read in the six deposit tables and store in a named list
 path <- "DataS1"
-File_names <- list.files(path)
+File_names <- setdiff(list.files(path, pattern = "\\.csv$"), "Column_names_ES.csv")
 
 Data <- map(File_names, \(file){
   read_csv(file = paste0(path, "/", file))
 })
-names(Data) <- str_remove(File_names, ".csv")
+names(Data) <- str_remove(File_names, "\\.csv$")
 
 # Explore -----------------------------------------------------------------
 # The datasets were split such that information is minimally repeated between datasets. This helps understand the structure of the datasets, such that the number of rows represent something meaningful. E.g.
 map_dbl(Data, nrow)
-# There are 20,959 bird observations before filtering, 17,155 bird observations after removing flyovers, recording-only IDs, or species observed outside of the point count radius (see 'Scripts/06_Analysis_wrangling.R'), 2,996 point count surveys, 587 species, and 504 unique survey locations.
+# There are 20,982 bird observations before filtering, 17,141 bird observations after removing flyovers, recording-only IDs, or species observed outside of the point count radius (see 'Scripts/06_Analysis_wrangling.R'), 2,999 point count surveys, 587 species, and 504 unique survey locations.
 
 # The taxonomy dataframe doesn't have as clear of an interpretation because of taxonomic lumps and splits. However, if you take the unique species names according to Ayerbe's taxonomy, you see again that there are 587 unique species observed.
 nrow(distinct(Data$Taxonomy, Species_ayerbe))
@@ -64,24 +64,24 @@ Three_way_join
 
 Data$Bird_pcs_all %>% 
   left_join(Data$Functional_traits) %>%
-  select(Species_ayerbe, Id_survey, 14:37)
+  select(Species_ayerbe, Id_survey, starts_with("Beak"), Mass, Trophic.Niche)
 
 # Missing data ------------------------------------------------------------
 # >No species observed at a point count  ---------------------------------
-# There are 56 point counts where no birds were observed, and thus they have no data in Bird_pcs_all
-Data$Event_covs %>% filter(Spp_obs == 0) %>% 
+# There are 79 point count surveys where no birds were observed, and thus they have no data in Bird_pcs_all
+Data$Event_covs %>% filter(Spp_obs == 0) %>%
   nrow()
 # Note that a full_join() was used to create Birds_event_covs, thus this tibble now has data for the point counts where no species were observed
 nrow(Birds_event_covs) - nrow(Data$Bird_pcs_all)
 
-# Given that Bird_pcs_analysis is a subset of Bird_pcs_all, there are additional point counts that were surveyed but have no data in Bird_pcs_analysis. For example, the point count "UBC-MB-M-A_02" contains 52 observations, but all of them were either >50m from the observer or were flyovers (Sobrevuelo). 
-Data$Bird_pcs_all %>% filter(Id_survey == "UBC-MB-M-A_02") %>% 
+# Given that Bird_pcs_analysis is a subset of Bird_pcs_all, some surveys have observations in Bird_pcs_all but none in Bird_pcs_analysis. For example, the 2022-06-16 visit to "UBC-MB-M-EPO3_06" has 32 observations, all of them >50 m from the observer.
+Data$Bird_pcs_all %>% filter(Id_survey == "UBC-MB-M-EPO3_06", Date == "2022-06-16") %>%
   distinct(Distance_bird, Obs_type)
-# Thus, it has no observations in the Bird_pcs_analysis tibble
-Data$Bird_pcs_analysis %>% filter(Id_survey == "UBC-MB-M-A_02") 
-# There are 101 point counts like this, that are present in Bird_pcs_all but not in Bird_pcs_analysis 
-Birds_event_covs_analysis <- Data$Bird_pcs_analysis %>% 
-  right_join(Data$Event_covs) %>% 
+# Thus that visit has no observations in Bird_pcs_analysis
+Data$Bird_pcs_analysis %>% filter(Id_survey == "UBC-MB-M-EPO3_06", Date == "2022-06-16")
+# The difference: surveys with birds recorded in Bird_pcs_all but no rows in Bird_pcs_analysis
+Birds_event_covs_analysis <- Data$Bird_pcs_analysis %>%
+  right_join(Data$Event_covs) %>%
   filter(Spp_obs == 1)
 nrow(Birds_event_covs_analysis) - nrow(Data$Bird_pcs_analysis)
 

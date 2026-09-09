@@ -1,9 +1,9 @@
 ## PhD birds in silvopastoral landscapes ##
-## Build the DataS1 deposit -- copy the six curated pipeline outputs from Derived/Excels/ into the tracked DataS1/ folder, plus a provenance manifest and a Spanish-header lookup.
+## Build the DataS1 deposit -- copy the six curated pipeline outputs from Derived/Excels/ into the tracked DataS1/ folder, plus a provenance manifest.
 
 ## DataS1/ holds only the final deposit tables; mid-pipeline artifacts that a reader can reproduce from the pipeline (e.g. Bird_pcs_dist.csv, the range-screening step) are deliberately excluded.
 
-## The pipeline writes English headers, so this step is mostly a freeze-into-place. It also validates every header against Suppfiles/column_names.csv (run Translate_column_names.R to refresh that) and writes DataS1/Column_names_ES.csv so a downloader can regenerate Spanish headers with DataS1/Make_Spanish_headers.R.
+## The pipeline writes English headers, so this step is mostly a freeze-into-place. It also validates every header against Suppfiles/column_names.csv (run Translate_column_names.R to refresh that). A Spanish-headed deposit is deferred; Translate_column_names.R still carries the machinery.
 
 ## Run this AFTER a full pipeline run (Scripts/01_ .. 06_). Column selection / ordering happen in each script's export section.
 ## Column_definitions_final.xlsx is hand-maintained and is NOT overwritten here.
@@ -52,15 +52,6 @@ exported <- imap(source_paths, function(src, name) {
   tibble(file = paste0(name, ".csv"), source = src, rows = nrow(df))
 }) %>% list_rbind()
 
-# Spanish-header lookup for the deposited translation script -----------------
-## english,spanish for every deposited column that has a Spanish name; Make_Spanish_headers.R uses this
-es_lookup <- crosswalk %>%
-  filter(!is.na(name_es), name_es != "") %>%
-  distinct(english = name_en, spanish = name_es) %>%
-  arrange(english)
-write_csv(es_lookup, "DataS1/Column_names_ES.csv")
-n_missing_es <- crosswalk %>% filter(is.na(name_es) | name_es == "") %>% nrow()
-
 # Provenance manifest ------------------------------------------------------
 git_sha <- tryCatch(system("git rev-parse --short HEAD", intern = TRUE),
                     error = function(e) NA_character_, warning = function(w) NA_character_)
@@ -78,6 +69,4 @@ writeLines(manifest, "DataS1/EXPORT_manifest.txt")
 # Console report --------------------------------------------------------------
 cat("Exported", nrow(exported), "files to DataS1/ (commit", git_sha, ")\n")
 print(as.data.frame(exported[c("file", "rows")]))
-cat("\nColumn_names_ES.csv:", nrow(es_lookup), "columns with a Spanish name;",
-    n_missing_es, "still blank in the crosswalk.\n")
 cat("Review with:  git diff --stat DataS1/\n")

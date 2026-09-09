@@ -176,7 +176,7 @@ dual_table(
 
 Bird diversity in productive landscapes of Colombia
 
-## B. Data set identification code:  Bird_pcs_all.csv
+## B. Data set identification code: Bird_pcs_all.csv
 
 ## C. Data set description
 
@@ -663,7 +663,7 @@ Cols_metadata_l <- readRDS("Rdata/Cols_metadata_l.rds")
 #| label: tbl-bird-abundances-meta
 #| tbl-cap: "Metadata associated with the principal Bird point counts ('Bird_pcs_all.csv') dataset, including the identifying information of the point count. Species names (the 'Species_ayerbe' field) follow the illustrated field guide of @ayerbe2018guia, which uses the AOS–SACC taxonomy."
 
-Print_tbl(df = Cols_metadata_l$Bird_abu, join_df = Covs_defs$Bird_abundances)
+Print_tbl(df = Cols_metadata_l$Bird_pcs_all, join_df = Covs_defs$Bird_pcs_all)
 ```
 
 ```{r}

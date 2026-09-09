@@ -653,8 +653,8 @@ extract_metadata <- function(df){
 }
 
 ### Create metadata tbls
-## Primary abundance file 
-Bird_abu_meta <- Bird_pcs_all %>% extract_metadata() 
+## Primary point-count file
+Bird_pcs_all_meta <- Bird_pcs_all %>% extract_metadata()
 
 ## Site covariates
 Site_covs_meta <- extract_metadata(Site_covs)
@@ -669,7 +669,7 @@ Fn_traits_meta <- Fn_traits %>% extract_metadata()
 Event_covs_meta <- Event_covs %>% extract_metadata() 
 
 ## Create column metadata list
-Cols_metadata_l <- list(Bird_abu = Bird_abu_meta, Site_covs = Site_covs_meta, Event_covs = Event_covs_meta, Taxonomy = Taxonomy_meta, Functional_traits = Fn_traits_meta)
+Cols_metadata_l <- list(Bird_pcs_all = Bird_pcs_all_meta, Site_covs = Site_covs_meta, Event_covs = Event_covs_meta, Taxonomy = Taxonomy_meta, Functional_traits = Fn_traits_meta)
 
 # >Export  ------------------------------------------------------
 

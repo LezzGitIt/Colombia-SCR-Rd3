@@ -6,7 +6,7 @@ The project uses data from 500+ unique point count locations surveyed 2013–202
 
 ## The dataset (`DataS1/`)
 
-`DataS1/` is the curated deposit that accompanies the data paper:
+`DataS1/` is the curated deposit that accompanies the data paper. Tables are joined with 'join keys':
 
 | File | Contents | Join keys |
 |------------------------|------------------------|------------------------|
@@ -16,7 +16,8 @@ The project uses data from 500+ unique point count locations surveyed 2013–202
 | `Site_covs.csv` | per-location covariates (elevation, climate, etc.) | `Id_survey_no_dc` |
 | `Taxonomy.csv` | SACC ↔ BirdLife ↔ eBird ↔ BirdTree crosswalk (Colombia) | `Species_ayerbe` |
 | `Functional_traits.csv` | per-species trait table | `Species_ayerbe` |
-| `Column_definitions_final.xlsx` | Column definitions for each table |  |
+| `Column_definitions_final.xlsx` | column definitions for each table (one sheet per table) |  |
+| `EXPORT_manifest.txt` | when the deposit was exported, from which pipeline commit, and the row count of each file |  |
 
 `Scripts/Data_paper/Data_joining_example.R` shows how the `DataS1/` tables join — a starting point, to be adapted to your own analysis. `Scripts/06_Analysis_wrangling.R` documents how `Bird_pcs_analysis.csv` was derived from the full observation set.
 
@@ -32,7 +33,7 @@ On publication, the versioned deposit of record (with a DOI) will be archived on
 | `02_Taxonomy.R` | `Taxonomy.csv`, taxonomy-standardized observations |
 | `03_FT_elev.R` | `Functional_traits.csv`, elevational ranges |
 | `04a_Range_screening.R` | elevational + distributional range screening → review Excels + PDF maps (heavy geospatial; run only to refresh the review) |
-| `04b_Range_apply.R` | applies the curated remove/change list → `Bird_pcs_dist.csv` |
+| `04b_Range_apply.R` | applies the curated remove/change list → `Bird_pcs_dist.csv` (intermediate) |
 | `05_wvsc.R` | woody-vegetation canopy cover + height, added to `Event_covs.csv` |
 | `06_Analysis_wrangling.R` | `Bird_pcs_analysis.csv` |
 
@@ -40,10 +41,7 @@ On publication, the versioned deposit of record (with a DOI) will be archived on
 
 ## Reproducing the manuscript
 
-The raw provider data are not in this repository, so the pipeline and manuscript
-currently build only on the maintainer's machine; a fully from-clone reproducible
-bundle will be assembled for the Dryad/Zenodo deposit. Rendering additionally needs
-a populated `Derived/` (from the pipeline), the Elsevier Quarto extension, and `xelatex`.
+The raw provider data are not in this repository, so the pipeline and manuscript currently build only on the maintainer's machine; a fully from-clone reproducible bundle will be assembled for the Dryad/Zenodo deposit. Rendering additionally needs a populated `Derived/` (from the pipeline), the Elsevier Quarto extension, and `xelatex`.
 
 ``` r
 # 1. Install the journal format (once per machine; it lands in _extensions/, which is gitignored)
@@ -61,7 +59,7 @@ Output (`Data_paper_ecology.pdf` and `.docx`) lands next to the qmd in `Scripts/
 
 ## Repository layout
 
-```
+```         
 Scripts/        01–06 pipeline; Data_paper/ (figure + example scripts); qmd/ (manuscript)
 DataS1/         curated deposit (tracked)
 Suppfiles/      bibliography, author/affiliation metadata, title-page partial

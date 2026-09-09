@@ -33,8 +33,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Outline
-
 ```{r}
 #| label: Load-libraries
 
@@ -65,6 +63,16 @@ names(Data) <- str_remove(File_names, ".csv")
 
 # Load functions
 source("/Users/aaronskinner/Library/CloudStorage/OneDrive-UBC/Academia/Rcookbook/Themes_funs.R")
+
+# Emit a table for whichever format is rendering. `latex_fn` receives the data frame and
+# returns the kableExtra-styled LaTeX kable for the PDF; every other format (Word, HTML)
+# gets a plain markdown table, which pandoc turns into a native table. `headers` sets the
+# column names on the plain path (LaTeX headers are handled inside latex_fn).
+dual_table <- function(df, headers = names(df), latex_fn) {
+  if (knitr::is_latex_output()) return(latex_fn(df))
+  if (is.function(headers)) headers <- headers(names(df))
+  knitr::kable(df, col.names = headers)
+}
 ```
 
 ```{r}
@@ -86,22 +94,16 @@ Num_farms <- unique(Data$Site_covs$Id_scr) %>% length()
 Visits_per_loc <- Data$Event_covs %>% count(Id_survey_no_dc, name = "n_visits")
 Max_visits_loc <- max(Visits_per_loc$n_visits)
 
-# Point counts (excluding CIPAV, surveyed once) with >= 3 repeat surveys inside one closed sampling period -- also cited in the Research methods section
+# Locations with >= 3 repeat surveys inside one closed sampling period.
+# Per_three_plus_loc = share of all locations (matches the abstract); Per_three_plus = share of non-CIPAV point counts (Research methods, since CIPAV was surveyed once).
+Per_three_plus_loc <- Data$Event_covs %>%
+  slice_max(order_by = Rep_season, by = Id_survey_no_dc, with_ties = FALSE) %>%
+  summarise(pct = round(mean(Rep_season >= 3) * 100)) %>% pull(pct)
 Max_pcs_per_season <- Data$Event_covs %>%
   filter(Institution_name != "Cipav") %>%
   slice_max(order_by = Rep_season, by = Id_survey)
 Per_three_plus <- round(nrow(filter(Max_pcs_per_season, Rep_season >= 3)) / nrow(Max_pcs_per_season) * 100, 1)
 ```
-
-## Format of document
-
-I've included the broad categories from the Ecology template, the associated short description, and then my suggested response, as in the following example:
-
-## Example category
-
-Description provided by Ecology
-
-My suggested response
 
 # Introduction
 
@@ -115,7 +117,7 @@ Here we present the 'Bird diversity in productive landscapes of Colombia' datase
 
 ![The locations of 504 point count sites in 73 farms across five ecoregions in Colombia. Colombia is extremely topographically diverse, with the Andes mountain range trifurcating into three distinct chains (i.e., 'cordilleras'), in addition to more isolated 'sierras' (e.g., Sierra Nevada de Santa Marta), that are critical for understanding bird distributions in Colombia. In between the chains of the Andes lie two major river valleys, the Cauca and Magdalena (labeled in red). Major rivers also run off the Eastern slope of the Andes into the plains and eventually into the Orinoco and Amazon rivers. The shape of the symbol corresponds to the data collector, and the size corresponds to the number of point counts within a quarter degree squared grid cell. Note that a small jitter was applied to all points, and a larger jitter was applied to points in the Piedemonte region to improve visibility. Elevation was log-transformed to emphasize altitudinal gradients at lower elevations.](../../../Figures/Static/Map_sampling/TNC_Field_Map_Final.png){#fig-sampling-map}
 
-The `r Num_sites` point count locations were each surveyed 1–`r Max_visits_loc` times (`r Tot_pc_prty` surveys in total, pooled across data collectors). Excluding the point counts conducted by CIPAV (surveyed once), `r round(Per_three_plus, 0)`% were sampled $\geq$ 3 times within a closed sampling period, enabling estimation of detection probabilities through hierarchical models. Land-use landcover types surveyed include mature forest, forest fragments, riparian forest, crops, intensive pasture, several types of silvopasture, and heterogeneous mosaics (i.e., no single dominant landcover type). This dataset permits analyses of bird diversity patterns and community composition across land-use gradients, especially the effects of silvopastoral practices on biodiversity in tropical productive landscapes. We also provide complementary datasets of taxonomic equivalents (BirdLife, BirdTree, and eBird / Clements), functional traits, site covariates, and survey covariates (@tbl-file-info), facilitating a variety of research questions and analytical approaches. For example, one could examine the interacting effects of local management practices and climate, while controlling for phylogenetic non-independence, to understand silvopasture's influence on functional diversity and ecosystem service provisioning. Importantly, the longitudinal nature of these data allow for analyses of population trends or colonization/extinction dynamics, which is critical for conservation practitioners [@leesRoadmapIdentifyingFilling2020].
+The `r Num_sites` point count locations were each surveyed 1–`r Max_visits_loc` times (`r Tot_pc_prty` surveys in total, pooled across data collectors), and `r Per_three_plus_loc`% were sampled $\geq$ 3 times within a closed sampling period (nearly all of the point counts other than CIPAV's, which were surveyed once), enabling estimation of detection probabilities through hierarchical models. Land-use landcover types surveyed include mature forest, forest fragments, riparian forest, crops, intensive pasture, several types of silvopasture, and heterogeneous mosaics (i.e., no single dominant landcover type). This dataset permits analyses of bird diversity patterns and community composition across land-use gradients, especially the effects of silvopastoral practices on biodiversity in tropical productive landscapes. We also provide complementary datasets of taxonomic equivalents (BirdLife, BirdTree, and eBird / Clements), functional traits, site covariates, and survey covariates (@tbl-file-info), facilitating a variety of research questions and analytical approaches. For example, one could examine the interacting effects of local management practices and climate, while controlling for phylogenetic non-independence, to understand silvopasture's influence on functional diversity and ecosystem service provisioning. Importantly, the longitudinal nature of these data allow for analyses of population trends or colonization/extinction dynamics, which is critical for conservation practitioners [@leesRoadmapIdentifyingFilling2020].
 
 ![Phylogenetic relationships of the 587 bird species observed in our data set, represented by 585 tips (some species share a tip due to taxonomic differences between BirdTree and Ayerbe). There were 25 orders, of which 19 are shown using grayscale representative species (downloaded from phylopic). The number of species in each order is listed in parentheses.](../../../Figures/Static/Phylogeny_equal_sizes.png){#fig-phylogeny}
 
@@ -153,14 +155,17 @@ file_names_and_sizes <- tibble(
 # Print and format
 ## align = per column: File name / Description stay left (long strings read better), the two short columns centre under their headers
 ## A "\n" in a LaTeX header is not a line break -- kableExtra::linebreak() wraps it in \makecell (the makecell package is loaded in the qmd preamble); escape = FALSE is then required, so the underscores in File name / Description are pre-escaped
-file_names_and_sizes %>%
-  mutate(across(c(File_name, Description), ~str_replace_all(.x, "_", "\\\\_"))) %>%
-  kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE,
-        align = c("l", "l", "c", "c"),
-        col.names = kableExtra::linebreak(c("File name", "Description", "Number of\nobservations", "Size (MB)"), align = "c")) %>%
-  kable_styling(latex_options = c("striped", "hold_position"),
-                position = "center") %>%
+dual_table(
+  file_names_and_sizes,
+  headers = c("File name", "Description", "Number of observations", "Size (MB)"),
+  latex_fn = \(d) d %>%
+    mutate(across(c(File_name, Description), ~str_replace_all(.x, "_", "\\\\_"))) %>%
+    kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE,
+          align = c("l", "l", "c", "c"),
+          col.names = kableExtra::linebreak(c("File name", "Description", "Number of\nobservations", "Size (MB)"), align = "c")) %>%
+    kable_styling(latex_options = c("striped", "hold_position"), position = "center") %>%
     column_spec(2, width = "8cm")
+)
 ```
 
 ![The most abundant and widespread bird species in the project (before filtering observations). The total count refers to the summed count across all surveys, and localities refers to the number of unique point count locations where the species was detected at least once (total = 504).](../../../Figures/Species_counts_localities.png){#fig-abund-widespread-spp}
@@ -169,15 +174,9 @@ file_names_and_sizes %>%
 
 ## A. Data set identity:
 
-Title or theme of data set
-
 Bird diversity in productive landscapes of Colombia
 
-## B. Data set identification code:
-
-Database accession numbers or site-specific codes used to uniquely identify data set\
-\
-Bird_pcs_all.csv
+## B. Data set identification code:  Bird_pcs_all.csv
 
 ## C. Data set description
 
@@ -303,9 +302,10 @@ Data$Site_covs %>%
   ) %>%
   relocate(Description, .after = Ecoregion) %>%
   arrange(Range) %>%
-  kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE, align = "c") %>%
-  kable_styling(latex_options = c("striped", "hold_position"),
-                position = "center")
+  dual_table(latex_fn = \(d) d %>%
+    kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE, align = "c") %>%
+    kable_styling(latex_options = c("striped", "hold_position"), position = "center")
+  )
 ```
 
 Our study area covered nearly 8$^{\circ}$ of latitude, 3.5$^{\circ}$ of longitude, and `r area_km2_all$Area` $\text{km}^2$. See @tbl-elev for the area (the convex hull) of bird sampling locations in each ecoregion.
@@ -363,17 +363,9 @@ Hab_sub_tbl <- Create_hab_tbl(col = Habitat_sub)
 
   At high elevations (coffee region, Cordillera Oriental), steep slopes generate thin, rocky, volcanic soils that underlie deeply dissected river valleys. These steep slopes grade into rolling, soil-mantled landscapes in the foothills and into the alluvial lowlands of Bajo Magdalena and the Piedemonte. The Río Cesar valley is characterized by thin, rocky, and often saline soils. Elevation and topography shape soil development as well as local climate and vegetation patterns.
 
-- Watersheds, hydrology: Size, boundaries, receiving streams, etc.
-
-  See the 'Site type' section.
-
 - Site history: Site management practices, disturbance history, etc.\
   \
   Excluding the ‘mature forest’ sites, point counts were embedded in highly dynamic landscapes. Cattle ranching was the predominant agricultural activity on the farms we sampled, although other crops, including palm oil, avocado, citrus, eucalyptus, and coffee, were present in some ecoregions. Forest cover was often restricted to strips of \~30 m along the sides of rivers, streams, and other small watercourses (mandated by law in the 1990’s, although adherence varied among farms and regions). Thus, most riparian forests and forest fragments were relatively young (\<30-40 years), although forest on steep slopes was far less likely to have been clear cut for agriculture. Forests often showed evidence of ongoing human disturbance, including timber extraction and hunting; fencing to prevent cattle from entering forests and streams was common in some regions but rare in others.
-
-- Climate: Descriptive summary of site climatic characteristics
-
-  See previous sections, particularly the 'Site type' section.
 
 ### Experimental or sampling design:
 
@@ -434,17 +426,17 @@ Data_set_tbl_summ <- Covs_join %>%
 #| tbl-cap: The number of unique point count locations conducted by each contracting institution, as well as the methodology, the habitats surveyed, and the respective years they surveyed.
 
 
-Data_set_tbl %>% full_join(Data_set_tbl_summ) %>% 
-  rename(Dataset = Uniq_db, 
-         "Duration_(minutes)" = Duration_minutes,
-         "Radius_(m)" = Radius_m, 
-         "Ecoregions_(departments)" = Ecoregions_departments) %>% 
-  rename_with(.cols = everything(), 
-              .fn = ~linebreak(str_replace_all(., "_", "\n"),  align = "c")) %>% 
-  kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE, align = "c") %>%
-  kable_styling(latex_options = c("striped", "hold_position"), #"scale_down"
-                position = "center") #%>%
-  #column_spec(5, width = "7.5cm")
+Data_set_tbl %>% full_join(Data_set_tbl_summ) %>%
+  rename(Dataset = Uniq_db,
+         "Duration (minutes)" = Duration_minutes,
+         "Radius (m)" = Radius_m,
+         "Ecoregions (departments)" = Ecoregions_departments) %>%
+  rename_with(~str_replace_all(., "_", " ")) %>%
+  dual_table(latex_fn = \(d) d %>%
+    rename_with(.cols = everything(), .fn = ~linebreak(str_replace_all(., " ", "\n"), align = "c")) %>%
+    kable("latex", booktabs = TRUE, longtable = TRUE, escape = FALSE, align = "c") %>%
+    kable_styling(latex_options = c("striped", "hold_position"), position = "center")
+  )
 ```
 
 a.  Data collection period, frequency, etc.: Information necessary to understand temporal sampling regime
@@ -479,37 +471,23 @@ Ecor_pc_no_pdm <- Ecor_pc %>%
 
 a.  Field/laboratory: Description or reference to standard field/laboratory methods\
     \
-    Generally, point counts were conducted for 10 minutes in the morning, between sunrise and 11 AM (`r Per_bfor_11`%), recording all birds seen or heard within a 50-m fixed radius. CIPAV mbd employed a different methodology, using a 25-m radius and surveying for a variable amount of time. GAICA Distancia kept the 10-minute count but estimated the distance to any bird seen or heard and surveyed both mornings and afternoons (@tbl-by-data-set). Data sets differ in the intensity with which farms were surveyed – some data sets contain fewer farms that were more heavily sampled (e.g., Unillanos mbd), whereas others surveyed many farms but with less sampling intensity (e.g., Cipav mbd; @fig-pc-farm-db). Within each farm, point counts were generally separated by 100 - 150 meters to ensure independence (but there were exceptions). Note that excluding CIPAV, all data collectors recorded whether observations were flyovers (i.e., they did not use the habitat). Please see the 'Birds_SSP_Colombia_Detailed_methodologies' document for a more detailed accounting of the methods utilized by each data collector. The Piedemonte ecoregion had the most comprehensive sampling, with about half of the total point count locations (n = `r Pc_piedemonte`) sampled there. All other ecoregions were surveyed at `r min(Ecor_pc_no_pdm$n)` – `r max(Ecor_pc_no_pdm$n)` unique locations.\
+    Generally, point counts were conducted for 10 minutes in the morning, between sunrise and 11 AM (`r Per_bfor_11`%), recording all birds seen or heard within a 50-m fixed radius. CIPAV mbd employed a different methodology, using a 25-m radius and surveying for a variable amount of time (see `Pc_duration` in `Event_covs.csv`). GAICA Distancia did not employ a fixed point count radius, but instead estimated the distance to any bird seen or heard, and surveyed both mornings and afternoons (@tbl-by-data-set). Data sets differ in the intensity with which farms were surveyed – some data sets contain fewer farms that were more heavily sampled (e.g., Unillanos mbd), whereas others surveyed many farms but with less sampling intensity (e.g., Cipav mbd; @fig-pc-farm-db). Within each farm, point counts were generally separated by 100 - 150 meters to ensure independence (but there were exceptions). Note that excluding CIPAV, all data collectors recorded whether observations were flyovers (i.e., they did not use the habitat). Please see the 'Birds_SSP_Colombia_Detailed_methodologies' document for a more detailed accounting of the methods utilized by each data collector. The Piedemonte ecoregion had the most comprehensive sampling, with about half of the total point count locations (n = `r Pc_piedemonte`) sampled there. All other ecoregions were surveyed at `r min(Ecor_pc_no_pdm$n)` – `r max(Ecor_pc_no_pdm$n)` unique locations.\
 
 ![Each data set has bird information from point counts clustered within farms. Each point represents a farm and the x-axis conveys the number of unique point count locations at each farm. The colors correspond to the number of repeat surveys at each point count, rounded to the nearest whole number. The number of distinct farms within each data set is printed to the right of each boxplot. Note that this text is to the left of the most heavily sampled farm in the 'Unillanos mbd' and 'Ubc mbd' data sets (24 point counts) for display reasons.](../../../Figures/Pc_per_farm_db.png){#fig-pc-farm-db}
 
-a.  Instrumentation: Description and model/serial numbers\
-    \
-    NA\
-
-b.  Taxonomy and systematics: References for taxonomic keys, identification, and location of voucher specimens, etc.\
+a.  Taxonomy and systematics: References for taxonomic keys, identification, and location of voucher specimens, etc.\
     \
     We used the taxonomy used in Ayerbe’s 2018 field guide to the birds of Colombia [@ayerbe2018guia], which predominantly uses the American Ornithologists’ Society–South American Classiﬁcation Committee (AOS–SACC) taxonomy [@remsenClassificationBirdSpeciesSouth].\
 
-c.  Permit history: References to pertinent scientific and collecting permits\
-    NA\
-
-d.  Legal/organizational requirements: Relevant laws, decision criteria, compliance standards, etc.\
-    NA
-
-### Project personnel:
-
-Principal and associated investigator(s), technicians, supervisors, students
-
-NA \[It seems like this would be the authors list + the people mentioned in the acknowledgements, so I'm not sure what they're looking for\]
+b.  Permit history: References to pertinent scientific and collecting permits\
+    \
+    No permits were required for birds observations.
 
 # Class III. Data set status and accessibility
 
 ## A. Status
 
 ### Latest update:
-
-Date of last modification of data set
 
 ```{r}
 Sys.Date()
@@ -523,13 +501,9 @@ TBD
 
 ### Metadata status
 
-Date of last metadata update and current status
-
 Last updated on `r Sys.Date()`, version submitted
 
 ### Data verification
-
-Status of data quality assurance checking
 
 \[ECOTROPICO\] - In collaboration with the data collectors, AAS, AH, and JH took extensive quality-control checks. Primarily, this consisted of cross-checking data collected in the field against the stated methodologies from each data set (see 'Birds_SSP_Colombia_Detailed_methodologies' file). For example, we confirmed the empirical sampling dates and times against the reported point count schedules. Additional quality assurance procedures included:
 
@@ -537,13 +511,13 @@ Status of data quality assurance checking
 
 - Geospatial - Point count coordinates were verified to ensure that 1) the coordinates aligned with the reported department, 2) the proximity of point counts within an `Id_group` was reasonable (\< 2 km), and that 3) minimum point count spacing was consistent with that specified in the methodology.
 
-- Habitat verification - Descriptive habitat types were standardized and cross-referenced with Google Earth imagery to confirm correspondence; discrepancies within \<50 m were considered acceptable given potential GPS error \[To do - Indicate inconsistencies in the Excel somehow\]
+- Habitat verification - Descriptive habitat types were standardized and cross-referenced with Google Earth imagery to confirm correspondence; discrepancies within \<50 m were considered acceptable given potential GPS error.
 
 - Distributions - Species observations were compared against distributional ranges [@velezDistributionBirdsColombia2021] and elevational ranges [@quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021; @ayerbe2018guia].
 
 The location of species observed during point counts were then compared to species distribution shapefiles that contained 1890 species (\~97% of species in Colombia) to identify potential erroneous misidentifications [@velezDistributionBirdsColombia2021; @suarez-castroIntegratingMultipleData2024]. Given the strong influence that topography has on species distributions in Colombia, we also compared species' observed elevations to elevational ranges reported in [@ayerbe2018guia; @quinteroGlobalElevationalDiversity2018; @freemanInterspecificCompetitionLimits2022; @hiltyBirdsColombia2021]. All species observed outside of the species distributional range, or at an elevation \>150 meters above or below the elevational range found in the literature, were sent to the original data collector for review. Data collectors made recommendations for each species in question, falling into three categories: 1) the species identification and spatial information was correct (suggesting a range expansion), 2) the species was misidentified or wrongly transcribed and should be changed to a different species, or 3) if uncertain, the species should be removed from the database (applied by `04b_Range_apply.R`).
 
-CMK - NOTE:: CIPAV never did this exercise, and GAICA did not finish despite it being in their most recent 2024 contract (which TNC paid for). GAICA is no longer responding to my emails.
+CMK - NOTE:: CIPAV never did this exercise.
 
 ## B. Accessibility
 
@@ -573,11 +547,7 @@ None
 
 Any other restrictions that may prevent use of all or portions of data set
 
-Please cite this dataset (DOI TBD) when using these data.
-
-#### a. Release date
-
-Date when proprietary restrictions expire
+Please cite this paper (DOI TBD) when using these data.
 
 #### b. Citation
 
@@ -585,15 +555,7 @@ How data may be appropriately cited
 
 TBD
 
-#### c. Disclaimer(s)
-
-Any disclaimers that should be acknowledged by secondary users
-
-NA
-
 ### 5. Costs
-
-Costs associated with acquiring data (may vary by size of data request, desired medium, etc.)
 
 None
 
@@ -601,55 +563,19 @@ None
 
 ## A. Data set file
 
-### Identity
-
-Unique file names or codes
-
-### Size
-
-Number of records, record length, total number of bytes, etc.
-
 ### Format and storage mode
 
 File type (e.g., ASCII, binary, etc.), compression schemes employed (if any), etc.
 
-Tabular data and code is stored as .csv files and .R files, respectively.
-
-### Header information
-
-Description of any header data or information attached to file \[Note: may include elements related to variable information (IV.B.); if so, could be linked to appropriate section(s)\]
-
-### Alphanumeric attributes
-
-Mixed, upper, or lower case
+Tabular data and code is stored as .csv files (@tbl-file-info) and .R files, respectively.
 
 ### Special characters/fields:
 
-To do - Methods used to denote comments, flag modified or questionable data, etc.
+Methods used to denote comments, flag modified or questionable data, etc.
 
-Particularly relevant for the species out of range that were not checked by the data collector
-
-### Authentication procedures
-
-Digital signature, checksum, actual subset(s) of data, and other techniques for assuring accurate transmission of data to secondary users
-
-HOW DIFFERENT THAN 'DATA VERIFICATION' SECTION?
+The R pipeline on [github](https://github.com/LezzGitIt/Ssp-bird-data-wrangling.git) is well commented and removes questionable data. A user of the data can choose to filter data according to their needs.
 
 ## B. Variable information
-
-### Variable identity
-
-Unique variable name or code
-
-### Variable definition
-
-Precise definition of variables in data set
-
-### Units of measurement
-
-Units of measurement associated with each variable
-
-### Data type
 
 Data files can be joined together by join keys (i.e., columns), according to the needs of the analyst (see 'Data_joining_example.R'). The `Bird_abundances` and `Event_covs` data sets have the join keys `Id_survey` and `Id_survey_no_dc`. The `Site_covs` data set has the join key `Id_survey_no_dc`. The `Bird_pcs_all`, `Taxonomy`, and `Functional_traits` data sets all share the join key `Species_ayerbe`.
 
@@ -672,11 +598,16 @@ Print_tbl <- function(df, join_df = NULL, remove_field = NULL, drop_datatype = F
   df <- df %>% relocate(Definition, .after = Field_name) %>%
     relocate(any_of("Source"), .after = Definition)   # only the Functional_traits sheet carries a Source column
 
-  escape_latex <- TRUE
-
   if(drop_datatype) df <- df %>% select(-any_of("Data_type"))
 
-  if(drop_datatype && knitr::is_latex_output()){
+  # Word / HTML: emit a plain markdown table so pandoc builds a native table (the LaTeX path below produces nothing pandoc can convert)
+  if(!knitr::is_latex_output()){
+    return(df %>% rename_with(.fn = ~str_replace(., "_", " ")) %>% kable())
+  }
+
+  escape_latex <- TRUE
+
+  if(drop_datatype){
     # Narrow columns hold values with unbreakable runs (Long_distance, HBW/BirdLife,
     # Beak.Length_Culmen). Escape LaTeX specials ourselves, then allow a line break
     # after every "." "_" "/" so those cells wrap instead of overflowing.
@@ -771,63 +702,23 @@ Print_tbl(df = Cols_metadata_l$Functional_traits,
           drop_datatype = TRUE)
 ```
 
-### Data format
-
-#### a. Fixed, variable length
-
-#### b. Columns
-
-Start column, end column
-
-#### c. Optional number of decimal places
-
 ## C. Data anomalies:
 
-Description of missing data, anomalous data, calibration errors, etc.
-
-Given the diverse set of data collectors and a lack of a standardized set of methodologies. CIPAV point count start time.
+Given the diverse set of data collectors and the lack of a standardized methodology, there may be small inconsistencies throughout the dataset. We have taken every step in our power to resolve and document these inconsistencies.
 
 # Class V. Supplemental descriptors
 
-## A. Data acquisition
-
-### 1. Data forms or acquisition methods
-
-Description or examples of data forms, automated data loggers, digitizing procedures, etc.
-
-### 2. Location of completed data forms
-
-### 3. Data entry verification procedures
-
 ## B. Quality assurance/quality control procedures
 
-Identification and treatment of outliers, description of quality assessments, calibration of reference standards, equipment performance results, etc.
+`Bird_pcs_all.csv` contains every point-count detection retained after two upstream steps. `01_Gen_wrangling.R` keeps only formal point counts, excluding mist-net captures, incidental (*ad hoc*) sightings, free-roaming transects, and trial or practice-day surveys; `02_Taxonomy.R` then removes the 55 detections that could not be resolved to species (genus-level, ambiguous, or unidentified records). `04b_Range_apply.R` additionally omits 41 detections of 15 species that were flagged as misidentifications during distributional and elevational range review.
 
-No data were altered or omitted to address outliers in `Bird_pcs_all.csv`, but there are some observations with high abundances (e.g., 4 records with \>50 individuals) that could bias analyses if not addressed. In `Bird_pcs_analysis.csv` these 4 records are removed (see `06_Analysis_wrangling.R` script for more details).
-
-## C. Related materials:
-
-References and locations of maps, photographs, videos, GIS data layers, physical specimens, field notebooks, comments, etc.
+`06_Analysis_wrangling.R` restricts the data to detections within the 50-m radius that used the habitat — excluding flyovers and birds identified only from audio recordings — and caps a few observations at 50 individuals.
 
 ## D. Computer programs and data-processing algorithms:
 
-Description or listing of any algorithms used in deriving, processing, or transforming data
-
-Code to reproduce figures plus the manuscript (rendered in quarto) can be found at \[Zenodo / Dryad repository\], with version history on github \[link\]
-
-## E. Archiving
-
-### 1. Archival procedures
-
-Description of how data are archived for long-term storage and access
-
-The original datasets can be accessed from the ECOLOGY repository.
-
-### 2. Redundant archival sites: Locations and procedures followed
+Code to reproduce figures plus the manuscript (rendered in quarto) can be found at \[Zenodo / Dryad repository\], with version history on [github](https://github.com/LezzGitIt/Ssp-bird-data-wrangling.git).
 
 ## F. Publications and results
-
-Electronic reprints, lists of publications resulting from or related to the study, graphical/statistical data representations, etc.
 
 ```{r}
 #| label: Tax-row-summary
@@ -841,32 +732,16 @@ Total_row <- Tax_summary %>%
   relocate(Order, .before = N_fam)
 
 Tax_summary %>%
-  bind_rows(Total_row) %>% 
+  bind_rows(Total_row) %>%
   rename_with(~c("Order", "Families", "Genera", "Species")) %>%
-  kable(booktabs = TRUE, format = "latex", longtable = TRUE) %>%
-  kable_styling(latex_options = c("striped", "hold_position")) %>%
-  row_spec(nrow(Tax_summary), hline_after = TRUE) %>%
-  row_spec(nrow(Tax_summary) + 1, bold = TRUE)
+  dual_table(latex_fn = \(d) d %>%
+    kable(booktabs = TRUE, format = "latex", longtable = TRUE) %>%
+    kable_styling(latex_options = c("striped", "hold_position")) %>%
+    row_spec(nrow(Tax_summary), hline_after = TRUE) %>%
+    row_spec(nrow(Tax_summary) + 1, bold = TRUE)
+  )
 
 ```
-
-## G. History of data set usage
-
-### 1. Data request history
-
-Log of who requested data, for what purpose, and how data set was actually used
-
-### 2. Data set update history
-
-Description of any updates performed on data set
-
-### 3. Review history
-
-Last entry, last researcher review, etc.
-
-### 4. Questions and comments from secondary users
-
-Questionable or unusual data discovered by secondary users; limitations or problems encountered in specific applications of data; unresolved questions or comments
 
 # Acknowledgements
 
@@ -877,7 +752,7 @@ I am grateful to Camila Gómez, Nick Bayly, and several students at the Universi
 - All co-authors:
 
   - The 5 ecoregions: Please see table 2 and confirm names + descriptions feel representative.
-  - Column names: Lets go with English, with a script to translate the column names to Spanish. The data within the CSVs is still a mix of English and Spanish.
+  - Column names: Lets go with English, with a script to possibly translate the column names to Spanish in the future. The data within the CSVs is still a mix of English and Spanish, and likely needs to be addressed as well.
   - I wonder about removing ‘mbd’ and ‘distancia’, and just using Data collector + year to identify the different data sets? The original argument was the ‘Distancia’ dataset was a different research question, but early GAICA surveying (2013-2017) was conducted only in forest as they wanted to understand connectivity, so is also a different research question. GAICA Distancia did also use a different methodology, but so did CIPAV, so again the naming doesnt feel consistent across datasets.
 
 # References {.unnumbered}
